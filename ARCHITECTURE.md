@@ -51,11 +51,12 @@ All SDK types (`HookEvent`, `HookResponse`, and related enums) are auto-generate
 ```
 schema.json
     │
+    ├── crates/polyhook-core/ → types.rs   (typify)  ← used by WASM + native core
+    ├── crates/polyhook/      → types.rs   (typify)  ← Rust SDK
     ├── sdk-ts/        → HookEvent.ts, HookResponse.ts   (json-schema-to-typescript)
     ├── sdk-go/        → hook_event.go, hook_response.go  (go-jsonschema)
     ├── sdk-dotnet/    → HookEvent.cs, HookResponse.cs    (NJsonSchema)
-    ├── sdk-python/    → models.py                        (datamodel-code-generator)
-    └── crates/polyhook/ → types.rs                       (typify)
+    └── sdk-python/    → models.py                        (datamodel-code-generator)
 ```
 
 Changing a field in `schema.json` and rebuilding propagates the change to every SDK simultaneously.
