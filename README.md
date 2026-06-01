@@ -234,7 +234,7 @@ Source of truth: [tools.toml](tools.toml) — hook documentation links: [docs/to
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). To add tool support, add detection heuristics and mappings to `crates/core` — all language SDKs pick it up automatically on the next WASM build.
+See [CONTRIBUTING.md](CONTRIBUTING.md). To add tool support, add detection heuristics and mappings to `core` — all language SDKs pick it up automatically on the next WASM build.
 
 ---
 
