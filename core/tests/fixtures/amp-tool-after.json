@@ -1,0 +1,1 @@
+{"kind":"tool.after","name":"file.read","input":{"path":"/tmp/foo.txt"},"output":{"content":"hello"},"sessionId":"sess_amp_def"}

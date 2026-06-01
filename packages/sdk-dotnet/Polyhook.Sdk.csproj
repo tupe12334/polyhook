@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>Polyhook.Sdk</PackageId>
+    <Version>0.1.0</Version>
+    <AssemblyName>Polyhook.Sdk</AssemblyName>
+    <RootNamespace>Polyhook</RootNamespace>
+    <Description>C# SDK for polyhook — write AI coding agent hooks once, run them everywhere.</Description>
+    <Authors>polyhook</Authors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="PolyhookTests/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Wasmtime" Version="14.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="polyhook.wasm" />
+  </ItemGroup>
+</Project>

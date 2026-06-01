@@ -1,0 +1,1 @@
+{"type":"PostToolUse","tool_name":"Read","tool_input":{"file_path":"/tmp/foo.txt"},"tool_output":{"content":"hello world"},"session_id":"sess_cc_123"}

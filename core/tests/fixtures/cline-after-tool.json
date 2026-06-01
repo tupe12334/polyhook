@@ -1,0 +1,1 @@
+{"type":"afterToolUse","toolName":"read_file","input":{"path":"/tmp/foo.txt"},"output":{"content":"hello"},"sessionId":"sess_cl_abc"}

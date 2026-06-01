@@ -1,0 +1,1 @@
+{"event":"post_tool","tool":"read_file","parameters":{"path":"/tmp/foo.txt"},"result":{"content":"hello"},"session":"sess_ws_789"}

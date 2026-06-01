@@ -1,0 +1,1 @@
+{"type":"AfterToolCall","toolCall":{"name":"read_file","args":{"path":"/tmp/foo.txt"},"result":{"content":"hello"}},"sessionId":"sess_cur_456"}

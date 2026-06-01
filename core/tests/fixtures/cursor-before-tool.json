@@ -1,0 +1,1 @@
+{"type":"BeforeToolCall","toolCall":{"name":"run_terminal_cmd","args":{"command":"ls -la"}},"sessionId":"sess_cur_456"}

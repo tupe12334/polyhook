@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "core",
+    "packages/sdk-rust",
+]
+resolver = "2"

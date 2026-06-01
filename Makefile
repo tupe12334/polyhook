@@ -1,0 +1,162 @@
+# Polyhook — top-level Makefile
+#
+# All SDK types (CallerKind, HookEvent, HookResponse) are generated from
+# schema.json.  Run `make schema` (the default) to regenerate every SDK, or
+# run a language-specific target to regenerate only one.
+#
+# Prerequisites (install once):
+#   TypeScript  : npm install -g json-schema-to-typescript
+#   Go          : go install github.com/omissis/go-jsonschema/cmd/gojsonschema@latest
+#   Python      : pip install datamodel-code-generator
+#   .NET        : dotnet tool install --global NJsonSchema.CodeGeneration.CLI  (or use NSwag)
+#   Rust        : types are hand-maintained in core/src/types.rs
+#                 (marked "generated from schema.json"); build.rs triggers revalidation
+#   wasm-pack   : cargo install wasm-pack
+
+SCHEMA        := schema.json
+TS_OUT        := packages/sdk-ts/src/generated/types.ts
+GO_OUT        := packages/sdk-go/generated_types.go
+PYTHON_OUT    := packages/sdk-python/src/polyhook/generated_models.py
+DOTNET_OUT    := packages/sdk-dotnet/GeneratedTypes.cs
+WASM_OUT      := polyhook.wasm
+
+.PHONY: all schema schema/rust schema/ts schema/go schema/dotnet schema/python \
+        wasm test help
+
+# ── Default ──────────────────────────────────────────────────────────────────
+all: schema
+
+# ── schema (all) ─────────────────────────────────────────────────────────────
+## schema: Regenerate types for every SDK from schema.json (default target)
+schema: schema/ts schema/go schema/python schema/dotnet schema/rust
+	@echo "All SDK types regenerated from $(SCHEMA)."
+
+# ── schema/rust ───────────────────────────────────────────────────────────────
+## schema/rust: Remind how Rust types are kept in sync with schema.json
+schema/rust:
+	@echo "──────────────────────────────────────────────────────"
+	@echo "Rust types are maintained in:"
+	@echo "  core/src/types.rs"
+	@echo ""
+	@echo "They are hand-written but clearly marked with a comment:"
+	@echo "  // Source of truth: schema.json — keep in sync manually."
+	@echo ""
+	@echo "build.rs emits:"
+	@echo "  cargo:rerun-if-changed=../schema.json"
+	@echo "so Cargo invalidates the build whenever schema.json changes."
+	@echo ""
+	@echo "Run 'cargo build -p polyhook-core' to recompile."
+	@echo "──────────────────────────────────────────────────────"
+
+# ── schema/ts ─────────────────────────────────────────────────────────────────
+## schema/ts: Generate TypeScript types from schema.json using json-schema-to-typescript
+schema/ts: $(SCHEMA)
+	@echo "Generating TypeScript types → $(TS_OUT)"
+	@mkdir -p $(dir $(TS_OUT))
+	npx --yes json-schema-to-typescript \
+	    $(SCHEMA) \
+	    --unreachableDefinitions \
+	    --no-additionalProperties \
+	    > $(TS_OUT)
+	@# Fix dedup artifact: tool emits CallerKind1 for the $ref inline use; collapse to CallerKind.
+	sed -i.bak '/^export type CallerKind1 =/,/^$$/d' $(TS_OUT) && rm -f $(TS_OUT).bak
+	sed -i.bak 's/CallerKind1/CallerKind/g' $(TS_OUT) && rm -f $(TS_OUT).bak
+	@echo "Done: $(TS_OUT)"
+
+# ── schema/go ─────────────────────────────────────────────────────────────────
+## schema/go: Generate Go types from schema.json using go-jsonschema
+schema/go: $(SCHEMA)
+	@echo "Generating Go types → $(GO_OUT)"
+	@mkdir -p $(dir $(GO_OUT))
+	gojsonschema \
+	    --schema-package https://polyhook.dev/schema.json=polyhook \
+	    --output $(GO_OUT) \
+	    $(SCHEMA)
+	@echo "Done: $(GO_OUT)"
+
+# ── schema/dotnet ─────────────────────────────────────────────────────────────
+## schema/dotnet: Generate .NET C# types from schema.json using NJsonSchema
+schema/dotnet: $(SCHEMA)
+	@echo "Generating .NET C# types → $(DOTNET_OUT)"
+	@mkdir -p $(dir $(DOTNET_OUT))
+	@# NJsonSchema CLI: install with `dotnet tool install --global NJsonSchema.CodeGeneration.CLI`
+	@# or NSwag: install with `dotnet tool install --global NSwag.ConsoleCore`
+	@if command -v njsonschema >/dev/null 2>&1; then \
+	    njsonschema \
+	        generate-types \
+	        --input $(SCHEMA) \
+	        --output $(DOTNET_OUT) \
+	        --namespace Polyhook \
+	        --class-name PolyhookTypes; \
+	elif command -v nswag >/dev/null 2>&1; then \
+	    nswag jsonschema2csclient \
+	        /input:$(SCHEMA) \
+	        /output:$(DOTNET_OUT) \
+	        /namespace:Polyhook; \
+	else \
+	    echo "ERROR: Neither 'njsonschema' nor 'nswag' found."; \
+	    echo "Install one of:"; \
+	    echo "  dotnet tool install --global NJsonSchema.CodeGeneration.CLI"; \
+	    echo "  dotnet tool install --global NSwag.ConsoleCore"; \
+	    exit 1; \
+	fi
+	@echo "Done: $(DOTNET_OUT)"
+
+# ── schema/python ─────────────────────────────────────────────────────────────
+## schema/python: Generate Python Pydantic models from schema.json using datamodel-code-generator
+schema/python: $(SCHEMA)
+	@echo "Generating Python types → $(PYTHON_OUT)"
+	@mkdir -p $(dir $(PYTHON_OUT))
+	datamodel-codegen \
+	    --input $(SCHEMA) \
+	    --input-file-type jsonschema \
+	    --output $(PYTHON_OUT) \
+	    --output-model-type pydantic_v2.BaseModel \
+	    --target-python-version 3.10 \
+	    --use-standard-collections \
+	    --use-union-operator \
+	    --field-constraints \
+	    --wrap-string-literal \
+	    --custom-file-header "# DO NOT EDIT — generated from schema.json by \`make schema/python\`."
+	@echo "Done: $(PYTHON_OUT)"
+
+# ── wasm ──────────────────────────────────────────────────────────────────────
+## wasm: Build polyhook.wasm with wasm-pack (bundler target)
+wasm:
+	@echo "Building polyhook.wasm…"
+	wasm-pack build core \
+	    --target bundler \
+	    --out-dir ../../$(dir $(WASM_OUT))wasm-pkg
+	@# Copy the .wasm artifact to the repo root for embedding by all SDKs.
+	cp $(dir $(WASM_OUT))wasm-pkg/polyhook_core_bg.wasm $(WASM_OUT)
+	@echo "Done: $(WASM_OUT)"
+
+# ── test ──────────────────────────────────────────────────────────────────────
+## test: Run the full test suite across all SDKs
+test:
+	@echo "── Rust ────────────────────────────────────────────────"
+	cargo test
+	@echo "── TypeScript ──────────────────────────────────────────"
+	npm test -w sdk-ts
+	@echo "── Go ──────────────────────────────────────────────────"
+	cd packages/sdk-go && go test ./...
+	@echo "── .NET ────────────────────────────────────────────────"
+	dotnet test packages/sdk-dotnet
+	@echo "── Python ──────────────────────────────────────────────"
+	python -m pytest packages/sdk-python
+	@echo "All tests passed."
+
+# ── help ──────────────────────────────────────────────────────────────────────
+## help: Show this help message
+help:
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
+	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/^## /  /'
+	@echo ""
+	@echo "Prerequisites:"
+	@echo "  TypeScript : npm install -g json-schema-to-typescript"
+	@echo "  Go         : go install github.com/omissis/go-jsonschema/cmd/gojsonschema@latest"
+	@echo "  Python     : pip install datamodel-code-generator"
+	@echo "  .NET       : dotnet tool install --global NJsonSchema.CodeGeneration.CLI"
+	@echo "  wasm-pack  : cargo install wasm-pack"
