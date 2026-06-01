@@ -2,9 +2,7 @@ use std::{env, fs, path::PathBuf};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR")?;
-    let schema_path = PathBuf::from(&manifest_dir)
-        .join("..")
-        .join("schema.json");
+    let schema_path = PathBuf::from(&manifest_dir).join("schema.json");
 
     println!("cargo:rerun-if-changed={}", schema_path.display());
 

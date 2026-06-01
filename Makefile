@@ -22,7 +22,7 @@ DOTNET_OUT    := packages/sdk-dotnet/GeneratedTypes.cs
 WASM_OUT      := polyhook.wasm
 
 .PHONY: all schema schema/rust schema/ts schema/go schema/dotnet schema/python \
-        wasm test spell install-hooks help
+        wasm test spell install-hooks readme help
 
 # ── Default ──────────────────────────────────────────────────────────────────
 all: schema
@@ -152,6 +152,12 @@ test:
 spell:
 	cspell "**" --no-progress
 
+# ── readme ────────────────────────────────────────────────────────────────────
+## readme: Generate README.md for every SDK package from scripts/gen-readmes.sh
+readme:
+	@echo "Generating package READMEs…"
+	@bash scripts/gen-readmes.sh
+
 # ── install-hooks ─────────────────────────────────────────────────────────────
 ## install-hooks: Configure git to use the committed githooks/ directory
 install-hooks:
@@ -182,9 +188,10 @@ test-coverage: coverage/rust coverage/ts coverage/go coverage/python coverage/do
 ## coverage/rust: Rust (core + sdk-rust) coverage via cargo-llvm-cov
 coverage/rust:
 	cargo llvm-cov --workspace \
-		--ignore-filename-regex 'types\.rs$$|wasm\.rs$$|stdin_wrappers\.rs$$' \
+		--ignore-filename-regex 'types\.rs$$|wasm\.rs$$' \
 		--fail-under-lines 100 \
-		--lcov --output-path target/lcov-rust.info
+		--lcov --output-path target/lcov-rust.info \
+		-- --test-threads 1
 
 ## coverage/ts: TypeScript SDK coverage via Vitest
 coverage/ts:

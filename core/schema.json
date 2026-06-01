@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Polyhook Schema",
+  "description": "Source-of-truth type definitions for the polyhook SDK. All language-specific types (Rust, TypeScript, Go, Python, .NET) are generated from this file.",
+  "definitions": {
+    "CallerKind": {
+      "title": "CallerKind",
+      "description": "Identifies which AI coding agent invoked the hook binary. The value is the canonical lowercase slug used by each tool's hook runner.",
+      "type": "string",
+      "enum": [
+        "claude-code",
+        "cursor",
+        "windsurf",
+        "cline",
+        "amp",
+        "unknown"
+      ]
+    },
+    "HookEvent": {
+      "title": "HookEvent",
+      "description": "The normalized event payload delivered to every hook handler after polyhook.wasm has parsed and translated the caller-specific stdin format.",
+      "type": "object",
+      "required": ["event", "sessionId", "caller"],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "description": "Normalized event kind. One of: 'tool:before' (about to run a tool), 'tool:after' (tool finished), 'session:start' (new agent session opened), 'session:stop' (agent session closed), 'agent:stop' (sub-agent returned), 'notification' (informational message, no response required).",
+          "type": "string",
+          "enum": [
+            "tool:before",
+            "tool:after",
+            "session:start",
+            "session:stop",
+            "agent:stop",
+            "notification"
+          ]
+        },
+        "tool": {
+          "description": "Normalized tool name (e.g. 'bash', 'write_file', 'read_file'). Present for tool:before and tool:after events; null for all other event kinds.",
+          "type": ["string", "null"]
+        },
+        "input": {
+          "description": "Tool input arguments as a free-form object. Present for tool:before events; null otherwise. The shape depends on the specific tool being called.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output": {
+          "description": "Tool output as a free-form object. Present for tool:after events; null otherwise. The shape depends on the specific tool that produced the output.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sessionId": {
+          "description": "Opaque session identifier provided by the calling AI tool. Used to correlate events that belong to the same agent session.",
+          "type": "string"
+        },
+        "agentId": {
+          "description": "Opaque identifier for the sub-agent that triggered this event. Present only when the hook is invoked from within a sub-agent context; null at the top-level agent.",
+          "type": ["string", "null"]
+        },
+        "caller": {
+          "description": "The AI coding tool that invoked this hook binary, detected from environment variables and stdin format. Defaults to 'unknown' when detection fails.",
+          "$ref": "#/definitions/CallerKind"
+        }
+      }
+    },
+    "HookResponse": {
+      "title": "HookResponse",
+      "description": "The response a hook handler returns to polyhook.wasm, which translates it into the format expected by the detected caller. Discriminated on the 'action' field.",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/ApproveResponse"
+        },
+        {
+          "$ref": "#/definitions/BlockResponse"
+        },
+        {
+          "$ref": "#/definitions/ModifyResponse"
+        }
+      ]
+    },
+    "ApproveResponse": {
+      "title": "ApproveResponse",
+      "description": "Instructs the AI tool to proceed with the operation unchanged. This is the default no-op response when a hook handler does not need to intervene.",
+      "type": "object",
+      "required": ["action"],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "description": "Discriminator field identifying this as an approve response.",
+          "type": "string",
+          "const": "approve"
+        }
+      }
+    },
+    "BlockResponse": {
+      "title": "BlockResponse",
+      "description": "Instructs the AI tool to abort the pending operation and surface the provided message to the user. The tool call is not executed.",
+      "type": "object",
+      "required": ["action", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "description": "Discriminator field identifying this as a block response.",
+          "type": "string",
+          "const": "block"
+        },
+        "message": {
+          "description": "Human-readable explanation shown to the user explaining why the operation was blocked. Should be clear and actionable.",
+          "type": "string"
+        }
+      }
+    },
+    "ModifyResponse": {
+      "title": "ModifyResponse",
+      "description": "Instructs the AI tool to execute the operation with a modified input instead of the original. Useful for sanitising arguments or injecting safety constraints.",
+      "type": "object",
+      "required": ["action", "input"],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "description": "Discriminator field identifying this as a modify response.",
+          "type": "string",
+          "const": "modify"
+        },
+        "input": {
+          "description": "Replacement input arguments to use instead of the original tool input. The shape must be compatible with the tool being called.",
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
