@@ -90,17 +90,7 @@ All SDKs expose the same two functions. The WASM module does all the work.
 npm install @polyhook/sdk
 ```
 
-```typescript
-import { read, respond } from "@polyhook/sdk";
-
-const event = await read();
-
-if (event.tool === "bash" && /rm\s+-rf\s+\//.test(event.input?.command as string)) {
-  await respond({ action: "block", message: "Refusing to delete from root" });
-} else {
-  await respond({ action: "approve" });
-}
-```
+Examples: [packages/sdk-ts/examples/](packages/sdk-ts/examples/)
 
 ### Rust
 
@@ -110,27 +100,7 @@ The only SDK that links core natively — no WASM overhead.
 cargo add polyhook
 ```
 
-```rust
-use polyhook::{read, respond, HookResponse};
-
-fn main() {
-    let event = read().unwrap();
-
-    let response = match event.tool.as_deref() {
-        Some("bash") => {
-            let cmd = event.input["command"].as_str().unwrap_or("");
-            if cmd.contains("rm -rf /") {
-                HookResponse::block("Refusing to delete from root")
-            } else {
-                HookResponse::approve()
-            }
-        }
-        _ => HookResponse::approve(),
-    };
-
-    respond(&response).unwrap();
-}
-```
+Examples: [packages/sdk-rust/examples/](packages/sdk-rust/examples/)
 
 ### Go
 
@@ -138,27 +108,7 @@ fn main() {
 go get github.com/polyhook/polyhook-go
 ```
 
-```go
-package main
-
-import (
-    "strings"
-    "github.com/polyhook/polyhook-go"
-)
-
-func main() {
-    event, _ := polyhook.Read()  // calls polyhook.wasm via Wazero
-
-    if event.Tool == "bash" {
-        if cmd, ok := event.Input["command"].(string); ok && strings.Contains(cmd, "rm -rf /") {
-            polyhook.Respond(polyhook.Block("Refusing to delete from root"))
-            return
-        }
-    }
-
-    polyhook.Respond(polyhook.Approve())
-}
-```
+Examples: [packages/sdk-go/examples/](packages/sdk-go/examples/)
 
 ### C# / .NET
 
@@ -166,22 +116,7 @@ func main() {
 dotnet add package Polyhook.Sdk
 ```
 
-```csharp
-using Polyhook.Sdk;  // calls polyhook.wasm via Wasmtime
-
-var evt = await Polyhook.ReadAsync();
-
-if (evt.Tool == "bash" &&
-    evt.Input.TryGetValue("command", out var cmd) &&
-    cmd.ToString()!.Contains("rm -rf /"))
-{
-    await Polyhook.RespondAsync(HookResponse.Block("Refusing to delete from root"));
-}
-else
-{
-    await Polyhook.RespondAsync(HookResponse.Approve());
-}
-```
+Examples: [packages/sdk-dotnet/examples/](packages/sdk-dotnet/examples/)
 
 ### Python
 
@@ -189,16 +124,7 @@ else
 pip install polyhook
 ```
 
-```python
-import polyhook  # calls polyhook.wasm via wasmtime-py
-
-event = polyhook.read()
-
-if event.tool == "bash" and "rm -rf /" in (event.input.get("command") or ""):
-    polyhook.respond(polyhook.block("Refusing to delete from root"))
-else:
-    polyhook.respond(polyhook.approve())
-```
+Examples: [packages/sdk-python/examples/](packages/sdk-python/examples/)
 
 > Any language with a WASM runtime can bind polyhook. See [BINDINGS.md](BINDINGS.md) for the raw WASM API.
 
