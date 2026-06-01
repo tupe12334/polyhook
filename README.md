@@ -218,7 +218,7 @@ else:
 | [Aider](https://aider.chat) | 🚧 In progress |
 | [Copilot](https://github.com/features/copilot) | 📋 Planned |
 
-Hook documentation for each tool: [docs/tool-names.md](docs/tool-names.md)
+Source of truth: [tools.toml](tools.toml) — hook documentation links: [docs/tool-names.md](docs/tool-names.md)
 
 ---
 

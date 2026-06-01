@@ -39,7 +39,8 @@ polyhook/
 │   └── sdk-python/        # Python bindings (wasmtime-py)
 │       └── examples/
 ├── polyhook.wasm          # built artifact, bundled into each SDK package
-└── schema.json            # single source of truth — types auto-generated from this into every SDK
+├── schema.json            # single source of truth — types auto-generated from this into every SDK
+└── tools.toml             # canonical tool registry — status, homepage, hooks_docs per tool
 ```
 
 ---

@@ -1,0 +1,57 @@
+# Canonical registry of supported AI coding tools.
+# README.md supported-tools table and docs/tool-names.md header links are generated from this file.
+# status: "supported" | "in-progress" | "planned"
+
+[[tool]]
+id          = "claude-code"
+name        = "Claude Code"
+status      = "supported"
+homepage    = "https://claude.ai/code"
+hooks_docs  = "https://code.claude.com/docs/en/hooks"
+
+[[tool]]
+id          = "cursor"
+name        = "Cursor"
+status      = "supported"
+homepage    = "https://cursor.com"
+hooks_docs  = "https://cursor.com/docs/hooks"
+
+[[tool]]
+id          = "windsurf"
+name        = "Windsurf"
+status      = "supported"
+homepage    = "https://windsurf.ai"
+hooks_docs  = "https://docs.windsurf.com/windsurf/cascade/hooks"
+
+[[tool]]
+id          = "cline"
+name        = "Cline"
+status      = "supported"
+homepage    = "https://github.com/cline/cline"
+hooks_docs  = "https://github.com/cline/cline"
+hooks_notes = "hooks landed in v3.36, no dedicated docs page"
+
+[[tool]]
+id          = "amp"
+name        = "Amp"
+status      = "supported"
+homepage    = "https://ampcode.com"
+hooks_docs  = "https://ampcode.com/news/hooks"
+
+[[tool]]
+id          = "continue"
+name        = "Continue"
+status      = "in-progress"
+homepage    = "https://continue.dev"
+
+[[tool]]
+id          = "aider"
+name        = "Aider"
+status      = "in-progress"
+homepage    = "https://aider.chat"
+
+[[tool]]
+id          = "copilot"
+name        = "GitHub Copilot"
+status      = "planned"
+homepage    = "https://github.com/features/copilot"
