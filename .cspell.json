@@ -18,7 +18,8 @@
     ".cspell.json",
     "**/obj/**",
     "**/*.egg-info/**",
-    "**/.pytest_cache/**"
+    "**/.pytest_cache/**",
+    "**/coverage/**"
   ],
   "words": [
     "Polyhook",
