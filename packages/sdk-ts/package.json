@@ -45,7 +45,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run --changed",
+    "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {},
