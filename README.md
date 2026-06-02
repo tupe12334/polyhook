@@ -105,7 +105,7 @@ Examples: [packages/sdk-rust/examples/](packages/sdk-rust/examples/)
 ### Go
 
 ```bash
-go get github.com/polyhook/polyhook-go
+go get github.com/tupe12334/polyhook/packages/sdk-go
 ```
 
 Examples: [packages/sdk-go/examples/](packages/sdk-go/examples/)
