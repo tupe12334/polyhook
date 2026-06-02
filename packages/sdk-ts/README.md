@@ -4,15 +4,22 @@
 
 polyhook detects which AI coding tool invoked your hook binary, deserializes the event into a normalized struct, and serializes your response back in the format that tool expects. Your hook runs unchanged whether Claude Code, Cursor, Windsurf, Cline, or Amp invoked it.
 
+Ships as dual ESM + CJS — works with `import` (ESM) and `require` (CJS) out of the box.
+
 ## Install
 
 ```bash
 npm install @polyhook/sdk
+# or
+pnpm add @polyhook/sdk
+# or
+yarn add @polyhook/sdk
 ```
 
 ## Quick Start
 
 ```typescript
+// ESM ("type": "module" or .mts)
 import { read, respond, block, approve } from "@polyhook/sdk";
 
 const event = await read();
@@ -27,7 +34,28 @@ if (
 }
 ```
 
+```javascript
+// CJS (require)
+const { read, respond, block, approve } = require("@polyhook/sdk");
+
+async function main() {
+  const event = await read();
+  await respond(approve());
+}
+main();
+```
+
 More examples: [examples/](examples/)
+
+## API
+
+| Function | Description |
+|---|---|
+| `read()` | Read and parse the hook event from stdin |
+| `respond(r)` | Serialize and write a response to stdout |
+| `approve()` | Build an approve response |
+| `block(message)` | Build a block response with a message |
+| `modify(input)` | Build a modify response with replacement fields |
 
 ## Supported Tools
 

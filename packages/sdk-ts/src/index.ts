@@ -1,5 +1,8 @@
 import * as fs from 'fs'
-import * as path from 'path'
+import { fileURLToPath } from 'url'
+
+// Variable ref (not a string literal) so Vite does not inline the .wasm as a data URL.
+const _wasmRel = '../polyhook.wasm'
 
 // ---------------------------------------------------------------------------
 // Types (re-exported from generated/types — source of truth is schema.json)
@@ -65,7 +68,7 @@ export function _setWasmInstance(instance: WasmExports | null): void {
 async function getWasm(): Promise<WasmExports> {
   if (_wasm !== null) return _wasm
 
-  const wasmPath = path.join(__dirname, '..', 'polyhook.wasm')
+  const wasmPath = fileURLToPath(new URL(_wasmRel, import.meta.url))
   const wasmBytes = fs.readFileSync(wasmPath)
   // Access the global WebAssembly object via globalThis so TypeScript does not
   // require the DOM lib (where the WebAssembly namespace is declared).

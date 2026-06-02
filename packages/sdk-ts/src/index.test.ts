@@ -13,31 +13,42 @@
  *                                        is pass-through in tests)
  */
 
-import { vi } from 'vitest'
-import { read, respond, approve, block, modify, _setWasmInstance, WasmExports, HookEvent, HookResponse, CallerKind } from './index'
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  read,
+  respond,
+  approve,
+  block,
+  modify,
+  _setWasmInstance,
+  WasmExports,
+  HookEvent,
+  HookResponse,
+  CallerKind,
+} from "./index";
 
 // Mock the 'fs' module so we can control readFileSync behaviour.
-vi.mock('fs')
-import * as fs from 'fs'
+vi.mock("fs");
+import * as fs from "fs";
 
 // ---------------------------------------------------------------------------
 // Mock WASM factory
 // ---------------------------------------------------------------------------
 
-const HEAP_SIZE = 1024 * 1024 // 1 MiB — plenty for test payloads
+const HEAP_SIZE = 1024 * 1024; // 1 MiB — plenty for test payloads
 
 function buildMockWasm(
   parseImpl: (inputJson: string) => HookEvent,
   serializeImpl: (response: HookResponse) => string = (r) => JSON.stringify(r),
 ): WasmExports {
-  const buf = new ArrayBuffer(HEAP_SIZE)
-  const memory = { buffer: buf }
-  let cursor = 4 // reserve the first 4 bytes so ptr=0 acts as null
+  const buf = new ArrayBuffer(HEAP_SIZE);
+  const memory = { buffer: buf };
+  let cursor = 4; // reserve the first 4 bytes so ptr=0 acts as null
 
   function alloc(len: number): number {
-    const ptr = cursor
-    cursor += len
-    return ptr
+    const ptr = cursor;
+    cursor += len;
+    return ptr;
   }
 
   function dealloc(_ptr: number, _len: number): void {
@@ -45,34 +56,34 @@ function buildMockWasm(
   }
 
   function writeLengthPrefixed(json: string): number {
-    const encoded = new TextEncoder().encode(json)
-    const totalLen = 4 + encoded.length
-    const ptr = alloc(totalLen)
-    const dv = new DataView(memory.buffer)
-    dv.setInt32(ptr, encoded.length, /* littleEndian */ true)
-    new Uint8Array(memory.buffer).set(encoded, ptr + 4)
-    return ptr
+    const encoded = new TextEncoder().encode(json);
+    const totalLen = 4 + encoded.length;
+    const ptr = alloc(totalLen);
+    const dv = new DataView(memory.buffer);
+    dv.setInt32(ptr, encoded.length, /* littleEndian */ true);
+    new Uint8Array(memory.buffer).set(encoded, ptr + 4);
+    return ptr;
   }
 
   function readString(ptr: number, len: number): string {
-    const bytes = new Uint8Array(memory.buffer, ptr, len)
-    return new TextDecoder().decode(bytes)
+    const bytes = new Uint8Array(memory.buffer, ptr, len);
+    return new TextDecoder().decode(bytes);
   }
 
   function parse(ptr: number, len: number): number {
-    const inputJson = readString(ptr, len)
-    const event = parseImpl(inputJson)
-    return writeLengthPrefixed(JSON.stringify(event))
+    const inputJson = readString(ptr, len);
+    const event = parseImpl(inputJson);
+    return writeLengthPrefixed(JSON.stringify(event));
   }
 
   function serialize(ptr: number, len: number): number {
-    const inputJson = readString(ptr, len)
-    const response = JSON.parse(inputJson) as HookResponse
-    const outJson = serializeImpl(response)
-    return writeLengthPrefixed(outJson)
+    const inputJson = readString(ptr, len);
+    const response = JSON.parse(inputJson) as HookResponse;
+    const outJson = serializeImpl(response);
+    return writeLengthPrefixed(outJson);
   }
 
-  return { memory, alloc, dealloc, parse, serialize }
+  return { memory, alloc, dealloc, parse, serialize };
 }
 
 // ---------------------------------------------------------------------------
@@ -81,41 +92,54 @@ function buildMockWasm(
 
 /** Replace process.stdin with a Readable that immediately emits `data`. */
 function mockStdin(data: string): void {
-  const { Readable } = require('stream')
-  const readable = new Readable({ read() {} })
-  Object.defineProperty(process, 'stdin', { value: readable, writable: true, configurable: true })
-  readable.push(Buffer.from(data, 'utf8'))
-  readable.push(null) // EOF
+  const { Readable } = require("stream");
+  const readable = new Readable({ read() {} });
+  Object.defineProperty(process, "stdin", {
+    value: readable,
+    writable: true,
+    configurable: true,
+  });
+  readable.push(Buffer.from(data, "utf8"));
+  readable.push(null); // EOF
 }
 
 /** Capture everything written to process.stdout during `fn`. */
 async function captureStdout(fn: () => Promise<void>): Promise<Buffer> {
-  const chunks: Buffer[] = []
-  const originalWrite = process.stdout.write.bind(process.stdout)
+  const chunks: Buffer[] = [];
+  const originalWrite = process.stdout.write.bind(process.stdout);
 
   // Override write to capture bytes without actually writing.
-  ;(process.stdout as NodeJS.WriteStream & { write: typeof process.stdout.write }).write = (
-    chunk: unknown,
-    encodingOrCb?: unknown,
-    cb?: unknown,
-  ): boolean => {
-    if (Buffer.isBuffer(chunk)) chunks.push(chunk)
-    else if (typeof chunk === 'string') chunks.push(Buffer.from(chunk))
-    else chunks.push(Buffer.from(chunk as Uint8Array))
+  (
+    process.stdout as NodeJS.WriteStream & {
+      write: typeof process.stdout.write;
+    }
+  ).write = (chunk: unknown, encodingOrCb?: unknown, cb?: unknown): boolean => {
+    if (Buffer.isBuffer(chunk)) chunks.push(chunk);
+    else if (typeof chunk === "string") chunks.push(Buffer.from(chunk));
+    else chunks.push(Buffer.from(chunk as Uint8Array));
 
     // Call the callback so the Promise in respond() resolves.
-    const callback = typeof encodingOrCb === 'function' ? encodingOrCb : typeof cb === 'function' ? cb : null
-    if (callback) (callback as () => void)()
-    return true
-  }
+    const callback =
+      typeof encodingOrCb === "function"
+        ? encodingOrCb
+        : typeof cb === "function"
+          ? cb
+          : null;
+    if (callback) (callback as () => void)();
+    return true;
+  };
 
   try {
-    await fn()
+    await fn();
   } finally {
-    ;(process.stdout as NodeJS.WriteStream & { write: typeof process.stdout.write }).write = originalWrite
+    (
+      process.stdout as NodeJS.WriteStream & {
+        write: typeof process.stdout.write;
+      }
+    ).write = originalWrite;
   }
 
-  return Buffer.concat(chunks)
+  return Buffer.concat(chunks);
 }
 
 // ---------------------------------------------------------------------------
@@ -123,395 +147,426 @@ async function captureStdout(fn: () => Promise<void>): Promise<Buffer> {
 // ---------------------------------------------------------------------------
 
 const CLAUDE_CODE_PRE_TOOL_CALL = JSON.stringify({
-  event: 'tool:before',
-  caller: 'claude-code' as CallerKind,
-  sessionId: 'session-1',
-  tool: 'Bash',
+  event: "tool:before",
+  caller: "claude-code" as CallerKind,
+  sessionId: "session-1",
+  tool: "Bash",
   input: {
-    command: 'rm -rf /tmp/test',
-    description: 'Clean up temp files',
+    command: "rm -rf /tmp/test",
+    description: "Clean up temp files",
   },
-})
+});
 
 const CLAUDE_CODE_POST_TOOL_CALL = JSON.stringify({
-  event: 'tool:after',
-  caller: 'claude-code' as CallerKind,
-  sessionId: 'session-1',
-  tool: 'Read',
-  input: { file_path: '/etc/passwd' },
-  output: { content: 'root:x:0:0:root:/root:/bin/bash\n', is_error: false },
-})
+  event: "tool:after",
+  caller: "claude-code" as CallerKind,
+  sessionId: "session-1",
+  tool: "Read",
+  input: { file_path: "/etc/passwd" },
+  output: { content: "root:x:0:0:root:/root:/bin/bash\n", is_error: false },
+});
 
 const CURSOR_PRE_TOOL_CALL = JSON.stringify({
-  event: 'tool:before',
-  caller: 'cursor' as CallerKind,
-  sessionId: 'session-2',
-  tool: 'edit_file',
-  input: { target_file: 'src/main.ts', instructions: 'refactor this function' },
-})
+  event: "tool:before",
+  caller: "cursor" as CallerKind,
+  sessionId: "session-2",
+  tool: "edit_file",
+  input: { target_file: "src/main.ts", instructions: "refactor this function" },
+});
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('helper constructors', () => {
-  test('approve() returns correct shape', () => {
-    expect(approve()).toEqual({ action: 'approve' })
-  })
+describe("helper constructors", () => {
+  test("approve() returns correct shape", () => {
+    expect(approve()).toEqual({ action: "approve" });
+  });
 
-  test('block() returns correct shape with message', () => {
-    expect(block('Dangerous command detected')).toEqual({
-      action: 'block',
-      message: 'Dangerous command detected',
-    })
-  })
+  test("block() returns correct shape with message", () => {
+    expect(block("Dangerous command detected")).toEqual({
+      action: "block",
+      message: "Dangerous command detected",
+    });
+  });
 
-  test('modify() returns correct shape with input', () => {
-    const input = { command: 'ls /tmp' }
-    expect(modify(input)).toEqual({ action: 'modify', input })
-  })
-})
+  test("modify() returns correct shape with input", () => {
+    const input = { command: "ls /tmp" };
+    expect(modify(input)).toEqual({ action: "modify", input });
+  });
+});
 
-describe('read() — Claude Code payloads', () => {
+describe("read() — Claude Code payloads", () => {
   afterEach(() => {
     // Reset cached WASM between tests so each test can inject a fresh mock.
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
-  test('parses tool:before from Claude Code', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
-    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL)
+  test("parses tool:before from Claude Code", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
+    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL);
 
-    const event = await read()
+    const event = await read();
 
-    expect(event.caller).toBe('claude-code')
-    expect(event.event).toBe('tool:before')
-    expect(event.tool).toBe('Bash')
-  })
+    expect(event.caller).toBe("claude-code");
+    expect(event.event).toBe("tool:before");
+    expect(event.tool).toBe("Bash");
+  });
 
-  test('parses tool:after from Claude Code', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
-    mockStdin(CLAUDE_CODE_POST_TOOL_CALL)
+  test("parses tool:after from Claude Code", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
+    mockStdin(CLAUDE_CODE_POST_TOOL_CALL);
 
-    const event = await read()
+    const event = await read();
 
-    expect(event.caller).toBe('claude-code')
-    expect(event.event).toBe('tool:after')
-    expect(event.tool).toBe('Read')
-    expect((event.output as { is_error: boolean }).is_error).toBe(false)
-  })
-})
+    expect(event.caller).toBe("claude-code");
+    expect(event.event).toBe("tool:after");
+    expect(event.tool).toBe("Read");
+    expect((event.output as { is_error: boolean }).is_error).toBe(false);
+  });
+});
 
-describe('read() — Cursor payloads', () => {
+describe("read() — Cursor payloads", () => {
   afterEach(() => {
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
-  test('parses tool:before from Cursor', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
-    mockStdin(CURSOR_PRE_TOOL_CALL)
+  test("parses tool:before from Cursor", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
+    mockStdin(CURSOR_PRE_TOOL_CALL);
 
-    const event = await read()
+    const event = await read();
 
-    expect(event.caller).toBe('cursor')
-    expect(event.event).toBe('tool:before')
-    expect(event.tool).toBe('edit_file')
-  })
-})
+    expect(event.caller).toBe("cursor");
+    expect(event.event).toBe("tool:before");
+    expect(event.tool).toBe("edit_file");
+  });
+});
 
-describe('respond() — writing to stdout', () => {
+describe("respond() — writing to stdout", () => {
   afterEach(() => {
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
-  test('writes approve response', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
+  test("writes approve response", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
 
-    const approveResp = approve()
-    const written = await captureStdout(() => respond(approveResp))
+    const approveResp = approve();
+    const written = await captureStdout(() => respond(approveResp));
 
-    const text = new TextDecoder().decode(written)
-    const parsed = JSON.parse(text)
-    expect(parsed.action).toBe('approve')
-  })
+    const text = new TextDecoder().decode(written);
+    const parsed = JSON.parse(text);
+    expect(parsed.action).toBe("approve");
+  });
 
-  test('writes block response with message', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
+  test("writes block response with message", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
 
-    const blockResp = block('rm -rf is not allowed')
-    const written = await captureStdout(() => respond(blockResp))
+    const blockResp = block("rm -rf is not allowed");
+    const written = await captureStdout(() => respond(blockResp));
 
-    const text = new TextDecoder().decode(written)
-    const parsed = JSON.parse(text)
-    expect(parsed.action).toBe('block')
-    expect(parsed.message).toBe('rm -rf is not allowed')
-  })
+    const text = new TextDecoder().decode(written);
+    const parsed = JSON.parse(text);
+    expect(parsed.action).toBe("block");
+    expect(parsed.message).toBe("rm -rf is not allowed");
+  });
 
-  test('writes modify response with replacement input', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
+  test("writes modify response with replacement input", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
 
-    const modifyResp = modify({ command: 'ls /tmp', description: 'Safe list' })
-    const written = await captureStdout(() => respond(modifyResp))
+    const modifyResp = modify({ command: "ls /tmp", description: "Safe list" });
+    const written = await captureStdout(() => respond(modifyResp));
 
-    const text = new TextDecoder().decode(written)
-    const parsed = JSON.parse(text)
-    expect(parsed.action).toBe('modify')
-    expect((parsed.input as { command: string }).command).toBe('ls /tmp')
-  })
-})
+    const text = new TextDecoder().decode(written);
+    const parsed = JSON.parse(text);
+    expect(parsed.action).toBe("modify");
+    expect((parsed.input as { command: string }).command).toBe("ls /tmp");
+  });
+});
 
-describe('read() + respond() round-trip', () => {
+describe("read() + respond() round-trip", () => {
   afterEach(() => {
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
-  test('full round-trip: Claude Code tool:before → block', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
-    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL)
+  test("full round-trip: Claude Code tool:before → block", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
+    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL);
 
-    const event = await read()
-    expect(event.event).toBe('tool:before')
+    const event = await read();
+    expect(event.event).toBe("tool:before");
 
     // Simulate a hook that blocks dangerous Bash commands.
-    const input = event.input as { command: string } | null
-    let response: HookResponse
-    if (event.tool === 'Bash' && input?.command.includes('rm -rf')) {
-      response = block('Destructive command blocked by polyhook')
+    const input = event.input as { command: string } | null;
+    let response: HookResponse;
+    if (event.tool === "Bash" && input?.command.includes("rm -rf")) {
+      response = block("Destructive command blocked by polyhook");
     } else {
-      response = approve()
+      response = approve();
     }
 
-    const written = await captureStdout(() => respond(response))
-    const text = new TextDecoder().decode(written)
-    const parsed = JSON.parse(text) as HookResponse
-    expect(parsed.action).toBe('block')
-    expect((parsed as { action: 'block'; message: string }).message).toContain('Destructive')
-  })
+    const written = await captureStdout(() => respond(response));
+    const text = new TextDecoder().decode(written);
+    const parsed = JSON.parse(text) as HookResponse;
+    expect(parsed.action).toBe("block");
+    expect((parsed as { action: "block"; message: string }).message).toContain(
+      "Destructive",
+    );
+  });
 
-  test('full round-trip: Cursor PreToolCall → approve', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
-    mockStdin(CURSOR_PRE_TOOL_CALL)
+  test("full round-trip: Cursor PreToolCall → approve", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
+    mockStdin(CURSOR_PRE_TOOL_CALL);
 
-    const event = await read()
-    const written = await captureStdout(() => respond(approve()))
+    const event = await read();
+    const written = await captureStdout(() => respond(approve()));
 
-    const text = new TextDecoder().decode(written)
-    const parsed = JSON.parse(text) as HookResponse
-    expect(parsed.action).toBe('approve')
-    expect(event.caller).toBe('cursor')
-  })
+    const text = new TextDecoder().decode(written);
+    const parsed = JSON.parse(text) as HookResponse;
+    expect(parsed.action).toBe("approve");
+    expect(event.caller).toBe("cursor");
+  });
 
-  test('full round-trip: Claude Code PostToolCall → modify', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
-    mockStdin(CLAUDE_CODE_POST_TOOL_CALL)
+  test("full round-trip: Claude Code PostToolCall → modify", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
+    mockStdin(CLAUDE_CODE_POST_TOOL_CALL);
 
-    await read()
-    const modResp = modify({ redacted: true, content: '[REDACTED]' })
-    const written = await captureStdout(() => respond(modResp))
+    await read();
+    const modResp = modify({ redacted: true, content: "[REDACTED]" });
+    const written = await captureStdout(() => respond(modResp));
 
-    const text = new TextDecoder().decode(written)
-    const parsed = JSON.parse(text) as HookResponse & { input?: Record<string, unknown> }
-    expect(parsed.action).toBe('modify')
-    expect(parsed.input?.redacted).toBe(true)
-  })
-})
+    const text = new TextDecoder().decode(written);
+    const parsed = JSON.parse(text) as HookResponse & {
+      input?: Record<string, unknown>;
+    };
+    expect(parsed.action).toBe("modify");
+    expect(parsed.input?.redacted).toBe(true);
+  });
+});
 
-describe('mock WASM memory layout', () => {
+describe("mock WASM memory layout", () => {
   afterEach(() => {
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
-  test('parse implementation uses custom normalisation logic', async () => {
+  test("parse implementation uses custom normalisation logic", async () => {
     // Simulate a WASM that uppercases the tool name during parsing.
     const wasm = buildMockWasm((json) => {
-      const raw = JSON.parse(json) as HookEvent
-      return { ...raw, tool: raw.tool ? raw.tool.toUpperCase() : raw.tool }
-    })
-    _setWasmInstance(wasm)
-    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL)
+      const raw = JSON.parse(json) as HookEvent;
+      return { ...raw, tool: raw.tool ? raw.tool.toUpperCase() : raw.tool };
+    });
+    _setWasmInstance(wasm);
+    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL);
 
-    const event = await read()
-    expect(event.tool).toBe('BASH')
-  })
+    const event = await read();
+    expect(event.tool).toBe("BASH");
+  });
 
-  test('serialize implementation can apply custom wire format', async () => {
+  test("serialize implementation can apply custom wire format", async () => {
     // Simulate a WASM that wraps the response in an envelope.
     const wasm = buildMockWasm(
       (json) => JSON.parse(json) as HookEvent,
       (resp) => JSON.stringify({ envelope: true, payload: resp }),
-    )
-    _setWasmInstance(wasm)
+    );
+    _setWasmInstance(wasm);
 
-    const written = await captureStdout(() => respond(approve()))
-    const text = new TextDecoder().decode(written)
-    const parsed = JSON.parse(text) as { envelope: boolean; payload: HookResponse }
-    expect(parsed.envelope).toBe(true)
-    expect(parsed.payload.action).toBe('approve')
-  })
-})
+    const written = await captureStdout(() => respond(approve()));
+    const text = new TextDecoder().decode(written);
+    const parsed = JSON.parse(text) as {
+      envelope: boolean;
+      payload: HookResponse;
+    };
+    expect(parsed.envelope).toBe(true);
+    expect(parsed.payload.action).toBe("approve");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // getWasm() — real loading path (fs.readFileSync error)
 // ---------------------------------------------------------------------------
 
-describe('getWasm() — WASM file not found', () => {
+describe("getWasm() — WASM file not found", () => {
   beforeEach(() => {
     // Force the real WASM loading path by resetting the cached instance.
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
   afterEach(() => {
-    vi.resetAllMocks()
+    vi.resetAllMocks();
     // Leave _wasm as null; subsequent test suites inject their own mock.
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
-  test('rejects when polyhook.wasm is missing (ENOENT)', async () => {
+  test("rejects when polyhook.wasm is missing (ENOENT)", async () => {
     // Make readFileSync throw ENOENT so the getWasm() path is exercised.
-    ;vi.mocked(fs.readFileSync).mockImplementation(() => {
-      const err = Object.assign(new Error('ENOENT: no such file or directory'), { code: 'ENOENT' })
-      throw err
-    })
+    vi.mocked(fs.readFileSync).mockImplementation(() => {
+      const err = Object.assign(
+        new Error("ENOENT: no such file or directory"),
+        { code: "ENOENT" },
+      );
+      throw err;
+    });
 
     // Also supply a valid stdin so the test failure comes from getWasm(), not
     // from stdin being exhausted.
-    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL)
+    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL);
 
-    await expect(read()).rejects.toThrow('ENOENT')
-  })
-})
+    await expect(read()).rejects.toThrow("ENOENT");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // readStdin() — error event path
 // ---------------------------------------------------------------------------
 
-describe('readStdin() — stdin error event', () => {
+describe("readStdin() — stdin error event", () => {
   afterEach(() => {
-    _setWasmInstance(null)
-    vi.resetAllMocks()
-  })
+    _setWasmInstance(null);
+    vi.resetAllMocks();
+  });
 
-  test('rejects when stdin emits an error event', async () => {
+  test("rejects when stdin emits an error event", async () => {
     // Inject a mock WASM so getWasm() succeeds and we reach readStdin().
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
 
     // Create a Readable that will be destroyed with an error.
-    const { Readable } = require('stream') as typeof import('stream')
-    const errReadable = new Readable({ read() {} })
-    Object.defineProperty(process, 'stdin', { value: errReadable, writable: true, configurable: true })
+    const { Readable } = require("stream") as typeof import("stream");
+    const errReadable = new Readable({ read() {} });
+    Object.defineProperty(process, "stdin", {
+      value: errReadable,
+      writable: true,
+      configurable: true,
+    });
 
     // Destroy the stream asynchronously so read() has time to attach its
     // 'error' listener before the error fires.
-    const stdinError = new Error('stdin pipe broken')
-    setImmediate(() => errReadable.destroy(stdinError))
+    const stdinError = new Error("stdin pipe broken");
+    setImmediate(() => errReadable.destroy(stdinError));
 
-    await expect(read()).rejects.toThrow('stdin pipe broken')
-  })
-})
+    await expect(read()).rejects.toThrow("stdin pipe broken");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // respond() — stdout.write error path
 // ---------------------------------------------------------------------------
 
-describe('respond() — stdout.write error', () => {
+describe("respond() — stdout.write error", () => {
   afterEach(() => {
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
-  test('rejects when stdout.write calls callback with error', async () => {
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
-    _setWasmInstance(wasm)
+  test("rejects when stdout.write calls callback with error", async () => {
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
+    _setWasmInstance(wasm);
 
-    const writeError = new Error('stdout broken')
-    const originalWrite = process.stdout.write.bind(process.stdout)
-    ;(process.stdout as NodeJS.WriteStream & { write: typeof process.stdout.write }).write = (
+    const writeError = new Error("stdout broken");
+    const originalWrite = process.stdout.write.bind(process.stdout);
+    (
+      process.stdout as NodeJS.WriteStream & {
+        write: typeof process.stdout.write;
+      }
+    ).write = (
       _chunk: unknown,
       _encodingOrCb?: unknown,
       cb?: unknown,
     ): boolean => {
       // Find whichever arg is the callback and call it with an error.
-      const callback = typeof _encodingOrCb === 'function' ? _encodingOrCb : typeof cb === 'function' ? cb : null
-      if (callback) (callback as (err?: Error) => void)(writeError)
-      return false
-    }
+      const callback =
+        typeof _encodingOrCb === "function"
+          ? _encodingOrCb
+          : typeof cb === "function"
+            ? cb
+            : null;
+      if (callback) (callback as (err?: Error) => void)(writeError);
+      return false;
+    };
 
     try {
-      await expect(respond(approve())).rejects.toThrow('stdout broken')
+      await expect(respond(approve())).rejects.toThrow("stdout broken");
     } finally {
-      ;(process.stdout as NodeJS.WriteStream & { write: typeof process.stdout.write }).write = originalWrite
+      (
+        process.stdout as NodeJS.WriteStream & {
+          write: typeof process.stdout.write;
+        }
+      ).write = originalWrite;
     }
-  })
-})
+  });
+});
 
 // ---------------------------------------------------------------------------
 // getWasm() — success path (file found, WebAssembly.instantiate resolves)
 // ---------------------------------------------------------------------------
 
-describe('getWasm() — WASM file loads successfully', () => {
-  let origWebAssembly: unknown
+describe("getWasm() — WASM file loads successfully", () => {
+  let origWebAssembly: unknown;
 
   beforeEach(() => {
-    _setWasmInstance(null)
-    origWebAssembly = (globalThis as Record<string, unknown>).WebAssembly
-  })
+    _setWasmInstance(null);
+    origWebAssembly = (globalThis as Record<string, unknown>).WebAssembly;
+  });
 
   afterEach(() => {
-    ;(globalThis as Record<string, unknown>).WebAssembly = origWebAssembly
-    vi.resetAllMocks()
-    _setWasmInstance(null)
-  })
+    (globalThis as Record<string, unknown>).WebAssembly = origWebAssembly;
+    vi.resetAllMocks();
+    _setWasmInstance(null);
+  });
 
-  test('loads WASM from file and caches the instance', async () => {
+  test("loads WASM from file and caches the instance", async () => {
     // Build a mock WASM exports object.
-    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent)
+    const wasm = buildMockWasm((json) => JSON.parse(json) as HookEvent);
 
     // Make readFileSync return a fake buffer (any bytes — we intercept instantiate).
-    vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from([0]) as unknown as string)
+    vi.mocked(fs.readFileSync).mockReturnValue(
+      Buffer.from([0]) as unknown as string,
+    );
 
     // Mock globalThis.WebAssembly.instantiate to resolve with our mock exports.
-    ;(globalThis as Record<string, unknown>).WebAssembly = {
+    (globalThis as Record<string, unknown>).WebAssembly = {
       instantiate: async (_bytes: unknown) => ({ instance: { exports: wasm } }),
-    }
+    };
 
-    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL)
-    const event = await read()
+    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL);
+    const event = await read();
 
-    expect(event.caller).toBe('claude-code')
-    expect(event.event).toBe('tool:before')
-  })
-})
+    expect(event.caller).toBe("claude-code");
+    expect(event.event).toBe("tool:before");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // _lastCaller fallback — event.caller missing from payload
 // ---------------------------------------------------------------------------
 
-describe('_lastCaller fallback', () => {
+describe("_lastCaller fallback", () => {
   afterEach(() => {
-    _setWasmInstance(null)
-  })
+    _setWasmInstance(null);
+  });
 
   test('defaults to "unknown" when caller is absent from parsed event', async () => {
     // Build a WASM mock that returns an event without a caller field.
     const wasm = buildMockWasm((json) => {
-      const raw = JSON.parse(json) as HookEvent
-      const { caller: _omit, ...rest } = raw as HookEvent & { caller?: unknown }
-      return rest as unknown as HookEvent
-    })
-    _setWasmInstance(wasm)
-    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL)
+      const raw = JSON.parse(json) as HookEvent;
+      const { caller: _omit, ...rest } = raw as HookEvent & {
+        caller?: unknown;
+      };
+      return rest as unknown as HookEvent;
+    });
+    _setWasmInstance(wasm);
+    mockStdin(CLAUDE_CODE_PRE_TOOL_CALL);
 
-    const event = await read()
+    const event = await read();
     // When caller is absent the module falls back to 'unknown'.
-    expect(event.caller ?? 'unknown').toBe('unknown')
-  })
-})
+    expect(event.caller ?? "unknown").toBe("unknown");
+  });
+});
