@@ -1,4 +1,4 @@
-module github.com/polyhook/polyhook-go
+module github.com/tupe12334/polyhook/packages/sdk-go
 
 go 1.21
 

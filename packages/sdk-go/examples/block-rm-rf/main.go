@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	polyhook "github.com/polyhook/polyhook-go"
+	polyhook "github.com/tupe12334/polyhook/packages/sdk-go"
 )
 
 func main() {

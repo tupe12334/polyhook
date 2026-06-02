@@ -17,7 +17,7 @@ package polyhook_test
 import (
 	"fmt"
 
-	polyhook "github.com/polyhook/polyhook-go"
+	polyhook "github.com/tupe12334/polyhook/packages/sdk-go"
 )
 
 const wasmMemoryLimit = 131072 // 2 pages × 65536 bytes/page

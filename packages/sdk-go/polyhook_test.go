@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	polyhook "github.com/polyhook/polyhook-go"
+	polyhook "github.com/tupe12334/polyhook/packages/sdk-go"
 )
 
 // ---------------------------------------------------------------------------

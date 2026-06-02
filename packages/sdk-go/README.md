@@ -7,7 +7,7 @@ polyhook detects which AI coding tool invoked your hook binary, deserializes the
 ## Install
 
 ```bash
-go get github.com/polyhook/polyhook-go
+go get github.com/tupe12334/polyhook/packages/sdk-go
 ```
 
 ## Quick Start
@@ -20,7 +20,7 @@ import (
 	"os"
 	"strings"
 
-	polyhook "github.com/polyhook/polyhook-go"
+	polyhook "github.com/tupe12334/polyhook/packages/sdk-go"
 )
 
 func main() {
