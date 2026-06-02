@@ -139,6 +139,7 @@ jobs:
           dotnet nuget push bin/Release/*.nupkg
           --api-key ${{ secrets.NUGET_API_KEY }}
           --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
         working-directory: packages/sdk-dotnet
 
   # ── GitHub Release + Go submodule tag ───────────────────────────────────────
