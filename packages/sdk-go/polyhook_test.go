@@ -420,10 +420,7 @@ func TestDefaultWASMLoader_ErrorPath(t *testing.T) {
 		return nil, errors.New("polyhook.wasm not found; embed it or place it next to the binary")
 	})
 	polyhook.ResetRuntime()
-	defer func() {
-		// Restore passthrough shim so subsequent tests are unaffected.
-		usePassthroughWASM()
-	}()
+	defer resetRuntime()
 
 	_, err := polyhook.ReadFrom(strings.NewReader(`{}`))
 	if err == nil {
@@ -537,15 +534,12 @@ func TestReadFrom_InvalidJSONEcho(t *testing.T) {
 // TestGetRuntime_MissingExport verifies that a WASM module missing a required
 // export (e.g. "parse") triggers an error.
 func TestGetRuntime_MissingExport(t *testing.T) {
-	// Minimal WAT module that exports only alloc and dealloc, omitting parse
-	// and serialize.
-	const missingExportsWAT = `(module
-  (memory (export "memory") 1)
-  (func (export "alloc") (param i32) (result i32) i32.const 0)
-  (func (export "dealloc") (param i32) (param i32))
-)`
+	// Minimal valid WASM binary: just the magic header + version (no sections).
+	// When wazero instantiates it, ExportedFunction("alloc") returns nil,
+	// which triggers the mustExport error path.
+	minimalWASM := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
 	polyhook.SetWasmLoader(func() ([]byte, error) {
-		return []byte(missingExportsWAT), nil
+		return minimalWASM, nil
 	})
 	polyhook.ResetRuntime()
 	defer resetRuntime()
@@ -554,7 +548,7 @@ func TestGetRuntime_MissingExport(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing WASM export; got nil")
 	}
-	if !strings.Contains(err.Error(), "parse") && !strings.Contains(err.Error(), "missing export") {
+	if !strings.Contains(err.Error(), "alloc") && !strings.Contains(err.Error(), "missing export") {
 		t.Errorf("error should mention missing export; got: %v", err)
 	}
 }

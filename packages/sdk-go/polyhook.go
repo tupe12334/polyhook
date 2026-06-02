@@ -64,6 +64,11 @@ var wasmBytes []byte
 // wasmLoader may be overridden by tests to inject a custom WASM binary.
 var wasmLoader func() ([]byte, error) = defaultWASMLoader
 
+// testParser and testSerializer bypass the WASM runtime entirely in tests.
+// When non-nil, ReadFrom and RespondTo call these functions instead of WASM.
+var testParser func([]byte) ([]byte, error)
+var testSerializer func([]byte) ([]byte, error)
+
 func defaultWASMLoader() ([]byte, error) {
 	// 1. If the package was built with the real embed, wasmBytes is already set.
 	if len(wasmBytes) > 0 {
@@ -271,14 +276,19 @@ func ReadFrom(r io.Reader) (*HookEvent, error) {
 		return nil, fmt.Errorf("polyhook: read stdin: %w", err)
 	}
 
-	wr, err := getRuntime()
-	if err != nil {
-		return nil, err
-	}
-
-	payload, err := wr.wasmCall(wr.parse, raw)
-	if err != nil {
-		return nil, fmt.Errorf("polyhook: parse: %w", err)
+	var payload []byte
+	if testParser != nil {
+		if payload, err = testParser(raw); err != nil {
+			return nil, fmt.Errorf("polyhook: parse: %w", err)
+		}
+	} else {
+		wr, err := getRuntime()
+		if err != nil {
+			return nil, err
+		}
+		if payload, err = wr.wasmCall(wr.parse, raw); err != nil {
+			return nil, fmt.Errorf("polyhook: parse: %w", err)
+		}
 	}
 
 	// Check for WASM-level error object.
@@ -318,14 +328,19 @@ func RespondTo(w io.Writer, r HookResponse) error {
 		return fmt.Errorf("polyhook: marshal HookResponse: %w", err)
 	}
 
-	wr, err := getRuntime()
-	if err != nil {
-		return err
-	}
-
-	payload, err := wr.wasmCall(wr.serialize, responseJSON)
-	if err != nil {
-		return fmt.Errorf("polyhook: serialize: %w", err)
+	var payload []byte
+	if testSerializer != nil {
+		if payload, err = testSerializer(responseJSON); err != nil {
+			return fmt.Errorf("polyhook: serialize: %w", err)
+		}
+	} else {
+		wr, err := getRuntime()
+		if err != nil {
+			return err
+		}
+		if payload, err = wr.wasmCall(wr.serialize, responseJSON); err != nil {
+			return fmt.Errorf("polyhook: serialize: %w", err)
+		}
 	}
 
 	_, err = w.Write(payload)

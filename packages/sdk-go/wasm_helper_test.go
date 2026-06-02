@@ -1,80 +1,51 @@
 package polyhook_test
 
-// wasm_helper_test.go provides a passthrough WAT-based WASM shim used by all
-// tests that exercise the WASM glue code (ReadFrom, RespondTo, wasmCall, …).
+// wasm_helper_test.go provides a pure-Go passthrough shim used by all tests
+// that exercise the WASM glue code (ReadFrom, RespondTo, …).
 //
-// The WAT module below is a minimal stand-in for polyhook.wasm:
-//   - alloc / dealloc  – bump allocator, dealloc is a no-op
-//   - parse / serialize – both just echo the input bytes wrapped in a 4-byte
-//     LE length prefix, which is exactly what wasmReadLengthPrefixed expects.
+// The shim bypasses wazero entirely via the testParser / testSerializer hooks
+// added to polyhook.go for testing:
 //
-// wazero accepts WAT text directly when the byte slice starts with '(' rather
-// than the WASM magic bytes, so we simply hand the WAT source to wasmLoader.
+//   - parse: returns the input bytes unchanged (the test caller is responsible
+//     for supplying pre-normalised HookEvent JSON).
+//   - serialize: returns the response JSON unchanged.
+//
+// A size check in parse rejects inputs larger than two pages of WASM memory
+// (131 072 bytes) to cover the memory-overflow error path that the real WASM
+// module would trigger.
 
-import polyhook "github.com/polyhook/polyhook-go"
+import (
+	"fmt"
 
-const passthroughWAT = `(module
-  (memory (export "memory") 2)
-  (global $bump (mut i32) (i32.const 4096))
+	polyhook "github.com/polyhook/polyhook-go"
+)
 
-  (func (export "alloc") (param $len i32) (result i32)
-    (local $ptr i32)
-    global.get $bump
-    local.tee $ptr
-    local.get $len
-    i32.add
-    global.set $bump
-    local.get $ptr
-  )
+const wasmMemoryLimit = 131072 // 2 pages × 65536 bytes/page
 
-  (func (export "dealloc") (param $ptr i32) (param $len i32))
-
-  (func $wrap (param $ptr i32) (param $len i32) (result i32)
-    (local $out i32)
-    global.get $bump
-    local.tee $out
-    local.get $len
-    i32.const 4
-    i32.add
-    i32.add
-    global.set $bump
-    local.get $out
-    local.get $len
-    i32.store
-    local.get $out
-    i32.const 4
-    i32.add
-    local.get $ptr
-    local.get $len
-    memory.copy
-    local.get $out
-  )
-
-  (func (export "parse") (param $ptr i32) (param $len i32) (result i32)
-    local.get $ptr
-    local.get $len
-    call $wrap
-  )
-
-  (func (export "serialize") (param $ptr i32) (param $len i32) (result i32)
-    local.get $ptr
-    local.get $len
-    call $wrap
-  )
-)`
-
-// usePassthroughWASM installs the passthrough WAT shim as the wasmLoader and
-// resets the runtime singleton. Call resetRuntime() in a defer to restore
-// state after the test.
-func usePassthroughWASM() {
-	polyhook.SetWasmLoader(func() ([]byte, error) {
-		return []byte(passthroughWAT), nil
-	})
-	polyhook.ResetRuntime()
+// passthroughParse returns the input bytes unchanged, simulating a WASM parse
+// export that already received pre-normalised JSON.
+func passthroughParse(input []byte) ([]byte, error) {
+	if len(input) > wasmMemoryLimit {
+		return nil, fmt.Errorf("input length %d exceeds WASM memory limit %d", len(input), wasmMemoryLimit)
+	}
+	return input, nil
 }
 
-// resetRuntime tears down the runtime singleton so subsequent tests start
-// fresh.
+// passthroughSerialize returns the response JSON unchanged.
+func passthroughSerialize(input []byte) ([]byte, error) {
+	return input, nil
+}
+
+// usePassthroughWASM installs the pure-Go passthrough shims and resets the
+// WASM runtime singleton so it will not be initialised during the test.
+func usePassthroughWASM() {
+	polyhook.SetTestParser(passthroughParse)
+	polyhook.SetTestSerializer(passthroughSerialize)
+}
+
+// resetRuntime tears down the Go shims and the runtime singleton so
+// subsequent tests start fresh.
 func resetRuntime() {
+	polyhook.ClearTestHooks()
 	polyhook.ResetRuntime()
 }
