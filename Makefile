@@ -122,7 +122,7 @@ schema/python: $(SCHEMA)
 	@echo "Done: $(PYTHON_OUT)"
 
 # ── wasm ──────────────────────────────────────────────────────────────────────
-## wasm: Build polyhook.wasm via cargo (wasm32-unknown-unknown, release)
+## wasm: Build polyhook.wasm and copy to all SDK directories
 wasm:
 	@echo "Building polyhook.wasm…"
 	cargo build --release --target wasm32-unknown-unknown -p polyhook-core
