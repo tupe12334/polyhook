@@ -130,7 +130,8 @@
     "addopts",
     "esbuild",
     "behaviour",
-    "testpaths"
+    "testpaths",
+    "toolu"
   ],
   "overrides": [
     {
