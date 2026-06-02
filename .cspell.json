@@ -131,7 +131,8 @@
     "esbuild",
     "behaviour",
     "testpaths",
-    "toolu"
+    "toolu",
+    "clippy"
   ],
   "overrides": [
     {
