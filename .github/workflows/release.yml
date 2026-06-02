@@ -82,7 +82,7 @@ jobs:
       - name: Publish polyhook-core
         run: cargo publish -p polyhook-core --token ${{ secrets.CRATES_IO_TOKEN }} --allow-dirty
       - name: Wait for crates.io to index polyhook-core
-        run: sleep 30
+        run: sleep 60
       - name: Publish polyhook (sdk-rust)
         run: cargo publish -p polyhook --token ${{ secrets.CRATES_IO_TOKEN }} --allow-dirty
 
