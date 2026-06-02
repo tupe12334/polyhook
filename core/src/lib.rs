@@ -21,7 +21,7 @@ use response::serialize_response;
 // serialise the response in the correct format without the caller needing to
 // thread the CallerKind through their code.
 thread_local! {
-    static LAST_CALLER: RefCell<CallerKind> = RefCell::new(CallerKind::Unknown);
+    static LAST_CALLER: RefCell<CallerKind> = const { RefCell::new(CallerKind::Unknown) };
 }
 
 /// Read a [`HookEvent`] from an arbitrary reader.
@@ -38,7 +38,7 @@ pub fn read_from(r: &mut impl Read) -> Result<HookEvent, String> {
 
     // Persist caller so `respond_to` / `respond` can use it.
     LAST_CALLER.with(|c| {
-        *c.borrow_mut() = event.caller.clone();
+        *c.borrow_mut() = event.caller;
     });
 
     Ok(event)
@@ -47,7 +47,7 @@ pub fn read_from(r: &mut impl Read) -> Result<HookEvent, String> {
 /// Write a [`HookResponse`] to an arbitrary writer in the format expected by
 /// the agent that was detected during the most recent [`read_from`] call.
 pub fn respond_to(w: &mut impl Write, response: &HookResponse) -> Result<(), String> {
-    let caller = LAST_CALLER.with(|c| c.borrow().clone());
+    let caller = LAST_CALLER.with(|c| *c.borrow());
     let value = serialize_response(response, &caller);
     // serde_json::Value is always serializable; expect is safe here.
     let json = serde_json::to_string(&value).expect("serde_json::Value is always serializable");

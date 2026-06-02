@@ -26,7 +26,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 // Store the caller detected during `parse` so that `serialize` can use it
 // without requiring callers to pass it explicitly.
 thread_local! {
-    static LAST_CALLER: RefCell<CallerKind> = RefCell::new(CallerKind::Unknown);
+    static LAST_CALLER: RefCell<CallerKind> = const { RefCell::new(CallerKind::Unknown) };
 }
 
 // ---------------------------------------------------------------------------
@@ -37,18 +37,27 @@ thread_local! {
 ///
 /// The allocation is managed by Rust's allocator; the caller is responsible
 /// for calling `dealloc` with the same pointer and length.
+///
+/// # Safety
+///
+/// The caller must write exactly `len` bytes before passing the pointer back
+/// to `parse` or `serialize`, and must call `dealloc(ptr, len)` exactly once
+/// when done.
 #[no_mangle]
 pub unsafe extern "C" fn alloc(len: usize) -> *mut u8 {
     let mut buf: Vec<u8> = Vec::with_capacity(len);
-    // Safety: we immediately hand ownership to the caller; they will write
-    // into this memory before passing it back.
-    buf.set_len(len);
     let ptr = buf.as_mut_ptr();
     std::mem::forget(buf);
     ptr
 }
 
 /// Free memory previously allocated by `alloc` or returned by `parse`/`serialize`.
+///
+/// # Safety
+///
+/// `ptr` must have been returned by `alloc`, `parse`, or `serialize`, and
+/// `len` must be the exact byte count that was originally allocated.  Must
+/// not be called more than once for the same pointer.
 #[no_mangle]
 pub unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize) {
     // Reconstruct the Vec so Rust can drop it.
@@ -64,6 +73,13 @@ pub unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize) {
 ///
 /// Side-effect: stores the detected `CallerKind` in the thread-local so that
 /// the subsequent `serialize` call can use it.
+///
+/// # Safety
+///
+/// `ptr` must point to `len` consecutive readable bytes valid for the
+/// duration of this call.  The returned pointer must be freed with
+/// `dealloc(ptr, 4 + payload_len)` where `payload_len` is the LE-i32 at the
+/// first four bytes of the returned buffer.
 #[no_mangle]
 pub unsafe extern "C" fn parse(ptr: *const u8, len: usize) -> *mut u8 {
     let input = std::slice::from_raw_parts(ptr, len);
@@ -72,7 +88,7 @@ pub unsafe extern "C" fn parse(ptr: *const u8, len: usize) -> *mut u8 {
         Ok(event) => {
             // Persist the caller for subsequent serialize calls.
             LAST_CALLER.with(|c| {
-                *c.borrow_mut() = event.caller.clone();
+                *c.borrow_mut() = event.caller;
             });
             match serde_json::to_vec(&event) {
                 Ok(bytes) => bytes,
@@ -93,6 +109,13 @@ pub unsafe extern "C" fn parse(ptr: *const u8, len: usize) -> *mut u8 {
 
 /// Deserialise a `HookResponse` JSON and re-serialise it in the format
 /// expected by the caller detected during the most recent `parse` call.
+///
+/// # Safety
+///
+/// `ptr` must point to `len` consecutive readable bytes valid for the
+/// duration of this call.  The returned pointer must be freed with
+/// `dealloc(ptr, 4 + payload_len)` where `payload_len` is the LE-i32 at the
+/// first four bytes of the returned buffer.
 #[no_mangle]
 pub unsafe extern "C" fn serialize(ptr: *const u8, len: usize) -> *mut u8 {
     let input = std::slice::from_raw_parts(ptr, len);
@@ -120,7 +143,7 @@ pub unsafe extern "C" fn serialize(ptr: *const u8, len: usize) -> *mut u8 {
                 }
                 _ => crate::types::HookResponse::approve(),
             };
-            let caller = LAST_CALLER.with(|c| c.borrow().clone());
+            let caller = LAST_CALLER.with(|c| *c.borrow());
             let value = serialize_response(&resp, &caller);
             match serde_json::to_vec(&value) {
                 Ok(bytes) => bytes,

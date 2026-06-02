@@ -1,5 +1,6 @@
 use crate::types::{ApproveResponse, BlockResponse, CallerKind, HookResponse, ModifyResponse};
 
+#[allow(clippy::derivable_impls)] // CallerKind is generated; Unknown is not the first variant
 impl Default for CallerKind {
     fn default() -> Self {
         CallerKind::Unknown

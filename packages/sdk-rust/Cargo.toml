@@ -17,6 +17,9 @@ name = "block_rm_rf"
 [[example]]
 name = "log_all_tools"
 
+[lints]
+workspace = true
+
 [dev-dependencies]
 serde_json = "1"
 temp-env = "0.3"
