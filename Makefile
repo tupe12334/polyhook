@@ -129,7 +129,9 @@ wasm:
 	cp target/wasm32-unknown-unknown/release/polyhook_core.wasm $(WASM_OUT)
 	cp $(WASM_OUT) packages/sdk-ts/polyhook.wasm
 	cp $(WASM_OUT) packages/sdk-go/polyhook.wasm
-	@echo "Done: $(WASM_OUT), packages/sdk-ts/polyhook.wasm, packages/sdk-go/polyhook.wasm"
+	cp $(WASM_OUT) packages/sdk-python/src/polyhook/polyhook.wasm
+	cp $(WASM_OUT) packages/sdk-dotnet/polyhook.wasm
+	@echo "Done: $(WASM_OUT) → all SDK directories"
 
 # ── test ──────────────────────────────────────────────────────────────────────
 ## test: Run the full test suite across all SDKs
