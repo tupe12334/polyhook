@@ -1,6 +1,6 @@
 [package]
 name = "polyhook-core"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 description = "Core types and utilities for polyhook — write AI coding agent hooks once, run them everywhere"
 license = "MIT"
