@@ -167,14 +167,14 @@ fn extract_agent_id(val: &serde_json::Value) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::parse_event;
-    use crate::types::CallerKind;
+    use crate::CallerKind;
     use serde_json::json;
 
     fn fixture(name: &str) -> Vec<u8> {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures")
             .join(name);
-        std::fs::read(&path).unwrap_or_else(|e| panic!("failed to read fixture {name}: {e}"))
+        std::fs::read(&path).expect("fixture file should be readable")
     }
 
     #[test]
@@ -318,6 +318,50 @@ mod tests {
         let input = evt.input.expect("input should be present");
         assert_eq!(input["command"], json!("ls -la"));
         assert!(evt.output.is_none());
+    }
+
+    #[test]
+    fn unknown_caller_tool_found_no_session() {
+        // No env vars + JSON shape → Unknown; tool_name present → hits extract_tool_field Unknown branch
+        // No session_id/sessionId/session → hits String::new() in extract_session_id
+        // No event/type/kind/hookEvent → hits String::new() in extract_event_field
+        let raw = br#"{"tool_name": "bash"}"#;
+        let evt = parse_event(raw).expect("parse failed");
+        assert_eq!(evt.caller, CallerKind::Unknown);
+        assert_eq!(evt.tool.as_deref(), Some("bash"));
+        assert_eq!(evt.session_id, "");
+    }
+
+    #[test]
+    fn non_object_tool_input_returns_none() {
+        // ClaudeCode shape but tool_input is a string → into_map returns None for non-Object
+        let raw =
+            br#"{"type":"PreToolUse","tool_name":"Bash","tool_input":"not-an-object","session_id":"s1"}"#;
+        let evt = parse_event(raw).expect("parse failed");
+        assert_eq!(evt.caller, CallerKind::ClaudeCode);
+        assert!(evt.input.is_none());
+    }
+
+    #[test]
+    fn unknown_caller_input_found_via_tool_input_key() {
+        // tool_input present but no tool_name → Unknown caller
+        // → extract_input Unknown branch hits return into_map(v.clone())
+        let raw = br#"{"tool_input": {"cmd": "ls"}, "session_id": "s1"}"#;
+        let evt = parse_event(raw).expect("parse failed");
+        assert_eq!(evt.caller, CallerKind::Unknown);
+        let input = evt.input.expect("input should be present");
+        assert_eq!(input["cmd"], json!("ls"));
+    }
+
+    #[test]
+    fn unknown_caller_output_found_via_tool_output_key() {
+        // tool_output present, no tool_name → Unknown caller
+        // → extract_output Unknown branch hits return into_map(v.clone())
+        let raw = br#"{"tool_output": {"result": "ok"}, "session_id": "s1"}"#;
+        let evt = parse_event(raw).expect("parse failed");
+        assert_eq!(evt.caller, CallerKind::Unknown);
+        let output = evt.output.expect("output should be present");
+        assert_eq!(output["result"], json!("ok"));
     }
 
     #[test]

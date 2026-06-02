@@ -123,7 +123,7 @@ fn normalize_amp(lower: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::normalize_tool;
-    use crate::types::CallerKind;
+    use crate::CallerKind;
 
     #[test]
     fn unknown_caller_returns_original() {
@@ -153,6 +153,7 @@ mod tests {
 
     // Windsurf extra mappings
     #[test] fn windsurf_edit_file()    { assert_eq!(normalize_tool("edit_file",       &CallerKind::Windsurf), "edit_file"); }
+    #[test] fn windsurf_search_files() { assert_eq!(normalize_tool("search_files",    &CallerKind::Windsurf), "grep"); }
     #[test] fn windsurf_find_files()   { assert_eq!(normalize_tool("find_files",      &CallerKind::Windsurf), "glob"); }
     #[test] fn windsurf_fetch_page()   { assert_eq!(normalize_tool("fetch_page",      &CallerKind::Windsurf), "web_fetch"); }
     #[test] fn windsurf_spawn_agent()  { assert_eq!(normalize_tool("spawn_agent",     &CallerKind::Windsurf), "spawn_agent"); }
@@ -162,6 +163,7 @@ mod tests {
     #[test] fn windsurf_create_dir()   { assert_eq!(normalize_tool("create_directory",&CallerKind::Windsurf), "create_dir"); }
 
     // Cline extra mappings
+    #[test] fn cline_search_files(){ assert_eq!(normalize_tool("search_files",      &CallerKind::Cline), "grep"); }
     #[test] fn cline_search()      { assert_eq!(normalize_tool("search",           &CallerKind::Cline), "web_search"); }
     #[test] fn cline_fetch()       { assert_eq!(normalize_tool("fetch",            &CallerKind::Cline), "web_fetch"); }
     #[test] fn cline_rename_file() { assert_eq!(normalize_tool("rename_file",      &CallerKind::Cline), "move_file"); }
@@ -178,4 +180,11 @@ mod tests {
     #[test] fn amp_fs_move()       { assert_eq!(normalize_tool("fs.move",        &CallerKind::Amp), "move_file"); }
     #[test] fn amp_fs_delete()     { assert_eq!(normalize_tool("fs.delete",      &CallerKind::Amp), "delete_file"); }
     #[test] fn amp_fs_mkdir()      { assert_eq!(normalize_tool("fs.mkdir",       &CallerKind::Amp), "create_dir"); }
+
+    // Fallthrough: unmapped tool names pass through unchanged for each known caller
+    #[test] fn claude_unknown_falls_through()   { assert_eq!(normalize_tool("no_such_tool", &CallerKind::ClaudeCode), "no_such_tool"); }
+    #[test] fn cursor_unknown_falls_through()   { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Cursor),    "no_such_tool"); }
+    #[test] fn windsurf_unknown_falls_through() { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Windsurf),  "no_such_tool"); }
+    #[test] fn cline_unknown_falls_through()    { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Cline),     "no_such_tool"); }
+    #[test] fn amp_unknown_falls_through()      { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Amp),       "no_such_tool"); }
 }

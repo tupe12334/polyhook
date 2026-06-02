@@ -122,15 +122,13 @@ schema/python: $(SCHEMA)
 	@echo "Done: $(PYTHON_OUT)"
 
 # ── wasm ──────────────────────────────────────────────────────────────────────
-## wasm: Build polyhook.wasm with wasm-pack (bundler target)
+## wasm: Build polyhook.wasm via cargo (wasm32-unknown-unknown, release)
 wasm:
 	@echo "Building polyhook.wasm…"
-	wasm-pack build core \
-	    --target bundler \
-	    --out-dir ../../$(dir $(WASM_OUT))wasm-pkg
-	@# Copy the .wasm artifact to the repo root for embedding by all SDKs.
-	cp $(dir $(WASM_OUT))wasm-pkg/polyhook_core_bg.wasm $(WASM_OUT)
-	@echo "Done: $(WASM_OUT)"
+	cargo build --release --target wasm32-unknown-unknown -p polyhook-core
+	cp target/wasm32-unknown-unknown/release/polyhook_core.wasm $(WASM_OUT)
+	cp $(WASM_OUT) packages/sdk-ts/polyhook.wasm
+	@echo "Done: $(WASM_OUT) and packages/sdk-ts/polyhook.wasm"
 
 # ── test ──────────────────────────────────────────────────────────────────────
 ## test: Run the full test suite across all SDKs
@@ -177,7 +175,7 @@ help:
 	@echo "  Go         : go install github.com/omissis/go-jsonschema/cmd/gojsonschema@latest"
 	@echo "  Python     : pip install datamodel-code-generator"
 	@echo "  .NET       : dotnet tool install --global NJsonSchema.CodeGeneration.CLI"
-	@echo "  wasm-pack  : cargo install wasm-pack"
+	@echo "  wasm32 target : rustup target add wasm32-unknown-unknown"
 
 # ── Coverage (100% required, generated code excluded) ─────────────────────────
 

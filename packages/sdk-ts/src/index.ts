@@ -7,7 +7,6 @@ import * as path from 'path'
 
 export type {
   CallerKind,
-  HookEventName,
   HookEvent,
   HookResponse,
 } from './generated/types'

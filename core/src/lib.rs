@@ -6,8 +6,10 @@ pub mod tools;
 pub mod types;
 mod type_impls;
 pub mod wasm;
+mod stdin_wrappers;
 
 pub use types::*;
+pub use stdin_wrappers::{read, respond};
 
 use std::cell::RefCell;
 use std::io::{Read, Write};
@@ -47,26 +49,13 @@ pub fn read_from(r: &mut impl Read) -> Result<HookEvent, String> {
 pub fn respond_to(w: &mut impl Write, response: &HookResponse) -> Result<(), String> {
     let caller = LAST_CALLER.with(|c| c.borrow().clone());
     let value = serialize_response(response, &caller);
-    let json = serde_json::to_string(&value).map_err(|e| format!("JSON encode error: {e}"))?;
+    // serde_json::Value is always serializable; expect is safe here.
+    let json = serde_json::to_string(&value).expect("serde_json::Value is always serializable");
 
     w.write_all(json.as_bytes())
         .map_err(|e| format!("write error: {e}"))?;
 
     Ok(())
-}
-
-/// Read a [`HookEvent`] from standard input.
-///
-/// Blocks until stdin is fully closed (i.e. the invoking agent has written the
-/// complete JSON payload and closed its end of the pipe).
-pub fn read() -> Result<HookEvent, String> {
-    read_from(&mut std::io::stdin())
-}
-
-/// Write a [`HookResponse`] to standard output in the format expected by the
-/// agent that was detected during the most recent [`read`] call.
-pub fn respond(response: &HookResponse) -> Result<(), String> {
-    respond_to(&mut std::io::stdout(), response)
 }
 
 // ---------------------------------------------------------------------------
@@ -172,5 +161,83 @@ mod tests {
         let json2: serde_json::Value = serde_json::from_slice(&output2).unwrap();
         // Cursor approve → {"action": "allow"}
         assert_eq!(json2["action"], "allow");
+    }
+
+    // Test the respond() thin wrapper (writes to stdout — captured by test harness).
+    #[test]
+    fn respond_delegates_to_stdout() {
+        // Prime LAST_CALLER.
+        let mut cursor = Cursor::new(CLAUDE_PRE_TOOL.as_bytes());
+        let _ = read_from(&mut cursor).expect("prime");
+        // respond() writes to stdout; in tests the harness captures it.
+        let result = respond(&HookResponse::approve());
+        assert!(result.is_ok());
+    }
+
+    // Test the read() thin wrapper via an OS pipe (Unix only).
+    #[cfg(unix)]
+    #[test]
+    fn read_delegates_to_stdin() {
+        extern "C" {
+            fn pipe(fds: *mut i32) -> i32;
+            fn dup(fd: i32) -> i32;
+            fn dup2(oldfd: i32, newfd: i32) -> i32;
+            fn close(fd: i32) -> i32;
+            fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+        }
+
+        let json = CLAUDE_PRE_TOOL.as_bytes();
+
+        unsafe {
+            let mut fds = [0i32; 2];
+            assert_eq!(pipe(fds.as_mut_ptr()), 0);
+            let (read_fd, write_fd) = (fds[0], fds[1]);
+
+            write(write_fd, json.as_ptr(), json.len());
+            close(write_fd);
+
+            let saved = dup(0);
+            dup2(read_fd, 0);
+            close(read_fd);
+
+            let result = read();
+
+            dup2(saved, 0);
+            close(saved);
+
+            result.expect("read() should succeed");
+        }
+    }
+
+    // Cover the error branch in read_from where the reader fails.
+    #[test]
+    fn read_from_io_error_returns_err() {
+        struct FailReader;
+        impl std::io::Read for FailReader {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe broken"))
+            }
+        }
+        let result = read_from(&mut FailReader);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("read error"));
+    }
+
+    // Cover the error branch in respond_to where the writer fails.
+    #[test]
+    fn respond_to_write_error_returns_err() {
+        struct FailWriter;
+        impl std::io::Write for FailWriter {
+            fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe broken"))
+            }
+            fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+        }
+        assert!(FailWriter.flush().is_ok());
+        let mut cursor = Cursor::new(CLAUDE_PRE_TOOL.as_bytes());
+        let _ = read_from(&mut cursor).expect("prime");
+        let result = respond_to(&mut FailWriter, &HookResponse::approve());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("write error"));
     }
 }

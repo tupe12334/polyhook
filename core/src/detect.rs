@@ -69,7 +69,7 @@ pub fn detect_caller(stdin: &serde_json::Value) -> CallerKind {
 #[cfg(test)]
 mod tests {
     use super::detect_caller;
-    use crate::types::CallerKind;
+    use crate::CallerKind;
 
     const AGENT_ENV_VARS: &[&str] = &[
         "POLYHOOK_CALLER",

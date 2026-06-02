@@ -2,12 +2,47 @@
   "name": "@polyhook/sdk",
   "version": "0.1.0",
   "description": "polyhook TypeScript SDK — write AI coding agent hooks once, run them everywhere",
+  "license": "MIT",
+  "author": "tupe12334",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tupe12334/polyhook.git",
+    "directory": "packages/sdk-ts"
+  },
+  "homepage": "https://github.com/tupe12334/polyhook#readme",
+  "bugs": {
+    "url": "https://github.com/tupe12334/polyhook/issues"
+  },
+  "keywords": [
+    "polyhook",
+    "hooks",
+    "ai",
+    "claude",
+    "cursor",
+    "windsurf",
+    "cline",
+    "amp",
+    "agent",
+    "coding-agent"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist/",
     "polyhook.wasm"
   ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run --changed",

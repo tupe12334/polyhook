@@ -83,7 +83,7 @@ fn serialize_amp(resp: &HookResponse) -> Value {
 #[cfg(test)]
 mod tests {
     use super::serialize_response;
-    use crate::types::{CallerKind, HookResponse};
+    use crate::{CallerKind, HookResponse};
     use serde_json::json;
 
     #[test]

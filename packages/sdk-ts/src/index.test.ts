@@ -14,7 +14,7 @@
  */
 
 import { vi } from 'vitest'
-import { read, respond, approve, block, modify, _setWasmInstance, WasmExports, HookEvent, HookResponse, CallerKind } from '../index'
+import { read, respond, approve, block, modify, _setWasmInstance, WasmExports, HookEvent, HookResponse, CallerKind } from './index'
 
 // Mock the 'fs' module so we can control readFileSync behaviour.
 vi.mock('fs')
