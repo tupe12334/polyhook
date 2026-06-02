@@ -50,7 +50,7 @@ fn str_field<'a>(val: &'a serde_json::Value, key: &str) -> Option<&'a str> {
 
 fn extract_event_field(val: &serde_json::Value, caller: &CallerKind) -> String {
     let candidates: &[&str] = match caller {
-        CallerKind::ClaudeCode => &["event", "hookEvent", "hook_event", "type"],
+        CallerKind::ClaudeCode => &["hook_event_name", "event", "hookEvent", "hook_event", "type"],
         CallerKind::Cursor => &["type", "event"],
         CallerKind::Windsurf => &["event", "type"],
         CallerKind::Cline => &["type", "event"],
@@ -330,6 +330,33 @@ mod tests {
         assert_eq!(evt.caller, CallerKind::Unknown);
         assert_eq!(evt.tool.as_deref(), Some("bash"));
         assert_eq!(evt.session_id, "");
+    }
+
+    #[test]
+    fn claude_code_pre_tool_hook_event_name() {
+        let raw = fixture("claude-code-pre-tool-hook-event-name.json");
+        let evt = parse_event(&raw).expect("parse failed");
+        assert_eq!(evt.caller, CallerKind::ClaudeCode);
+        assert_eq!(evt.event.to_string(), "tool:before");
+        assert_eq!(evt.tool.as_deref(), Some("bash"));
+        assert_eq!(evt.session_id, "sess_cc_real");
+        let input = evt.input.expect("input should be present");
+        assert_eq!(input["command"], json!("ls -la"));
+        assert!(evt.output.is_none());
+    }
+
+    #[test]
+    fn claude_code_post_tool_hook_event_name() {
+        let raw = fixture("claude-code-post-tool-hook-event-name.json");
+        let evt = parse_event(&raw).expect("parse failed");
+        assert_eq!(evt.caller, CallerKind::ClaudeCode);
+        assert_eq!(evt.event.to_string(), "tool:after");
+        assert_eq!(evt.tool.as_deref(), Some("read_file"));
+        assert_eq!(evt.session_id, "sess_cc_real");
+        let input = evt.input.expect("input should be present");
+        assert_eq!(input["file_path"], json!("/tmp/foo.txt"));
+        let output = evt.output.expect("output should be present");
+        assert_eq!(output["content"], json!("hello world"));
     }
 
     #[test]
