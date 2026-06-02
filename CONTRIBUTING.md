@@ -8,7 +8,6 @@ cd polyhook
 
 # Rust toolchain + wasm target
 rustup target add wasm32-unknown-unknown
-cargo install wasm-pack
 
 # Node (for TypeScript SDK)
 npm install
@@ -32,7 +31,7 @@ packages/sdk-python/    Python bindings
 
 ```bash
 # Build WASM artifact (required before building any language SDK)
-wasm-pack build core --target bundler --out-dir ../../polyhook.wasm
+make wasm
 
 # Build all SDKs
 cargo build                  # Rust (native)
@@ -66,7 +65,7 @@ Add the tool to the supported tools table in `README.md` and `ARCHITECTURE.md`.
 Rebuild WASM after any core change — all language SDKs pick it up automatically:
 
 ```bash
-wasm-pack build core --target bundler --out-dir ../../polyhook.wasm
+make wasm
 ```
 
 ## Adding a New Language Binding

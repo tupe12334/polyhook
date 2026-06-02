@@ -19,7 +19,6 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - uses: jetli/wasm-pack-action@v0.4.0
       - run: make wasm
       - uses: actions/upload-artifact@v4
         with:

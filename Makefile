@@ -11,7 +11,7 @@
 #   .NET        : dotnet tool install --global NJsonSchema.CodeGeneration.CLI  (or use NSwag)
 #   Rust        : types are hand-maintained in core/src/types.rs
 #                 (marked "generated from schema.json"); build.rs triggers revalidation
-#   wasm-pack   : cargo install wasm-pack
+#   wasm32 target : rustup target add wasm32-unknown-unknown
 #   cspell      : npm install -g cspell
 
 SCHEMA        := schema.json
