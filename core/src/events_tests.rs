@@ -37,3 +37,17 @@ fn unknown_caller_returns_original_string() {
 #[test] fn amp_session_stop()  { assert_eq!(normalize_event("session.stop",  &CallerKind::Amp), "session:stop"); }
 #[test] fn amp_agent_stop()    { assert_eq!(normalize_event("agent.stop",    &CallerKind::Amp), "agent:stop"); }
 #[test] fn amp_unknown_falls_through() { assert_eq!(normalize_event("bogus.bogus", &CallerKind::Amp), "bogus.bogus"); }
+
+// GeminiCli — all arms
+#[test] fn gc_before_tool()    { assert_eq!(normalize_event("BeforeTool",   &CallerKind::GeminiCli), "tool:before"); }
+#[test] fn gc_after_tool()     { assert_eq!(normalize_event("AfterTool",    &CallerKind::GeminiCli), "tool:after"); }
+#[test] fn gc_session_start()  { assert_eq!(normalize_event("SessionStart", &CallerKind::GeminiCli), "session:start"); }
+#[test] fn gc_session_end()    { assert_eq!(normalize_event("SessionEnd",   &CallerKind::GeminiCli), "session:stop"); }
+#[test] fn gc_after_agent()    { assert_eq!(normalize_event("AfterAgent",   &CallerKind::GeminiCli), "agent:stop"); }
+#[test] fn gc_notification()   { assert_eq!(normalize_event("Notification", &CallerKind::GeminiCli), "notification"); }
+#[test] fn gc_before_agent_falls_through()    { assert_eq!(normalize_event("BeforeAgent",         &CallerKind::GeminiCli), "BeforeAgent"); }
+#[test] fn gc_before_model_falls_through()    { assert_eq!(normalize_event("BeforeModel",         &CallerKind::GeminiCli), "BeforeModel"); }
+#[test] fn gc_after_model_falls_through()     { assert_eq!(normalize_event("AfterModel",          &CallerKind::GeminiCli), "AfterModel"); }
+#[test] fn gc_tool_selection_falls_through()  { assert_eq!(normalize_event("BeforeToolSelection", &CallerKind::GeminiCli), "BeforeToolSelection"); }
+#[test] fn gc_pre_compress_falls_through()    { assert_eq!(normalize_event("PreCompress",         &CallerKind::GeminiCli), "PreCompress"); }
+#[test] fn gc_unknown_falls_through()         { assert_eq!(normalize_event("Bogus",               &CallerKind::GeminiCli), "Bogus"); }

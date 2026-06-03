@@ -127,3 +127,24 @@ fn amp_modify() {
     assert_eq!(val["result"], json!("allow"));
     assert_eq!(val["modified"], new_input);
 }
+
+#[test]
+fn gemini_cli_approve() {
+    let val = serialize_response(&HookResponse::approve(), &CallerKind::GeminiCli);
+    assert_eq!(val["decision"], json!("allow"));
+}
+
+#[test]
+fn gemini_cli_block() {
+    let val = serialize_response(&HookResponse::block("secret detected"), &CallerKind::GeminiCli);
+    assert_eq!(val["decision"], json!("deny"));
+    assert_eq!(val["reason"], json!("secret detected"));
+}
+
+#[test]
+fn gemini_cli_modify() {
+    let new_input = json!({"content": "safe content"});
+    let val = serialize_response(&HookResponse::modify(new_input.clone()), &CallerKind::GeminiCli);
+    assert_eq!(val["decision"], json!("allow"));
+    assert_eq!(val["tool_input"], new_input);
+}

@@ -8,6 +8,7 @@ const AGENT_ENV_VARS: &[&str] = &[
     "WINDSURF_SESSION_ID",
     "CLINE_SESSION_ID",
     "AMP_SESSION_ID",
+    "GEMINI_PROJECT_DIR",
 ];
 
 fn with_clean_env<F: FnOnce()>(f: F) {
@@ -116,5 +117,60 @@ fn polyhook_caller_claudecode_alias_detected() {
         temp_env::with_var("POLYHOOK_CALLER", Some("claudecode"), || {
             assert_eq!(detect_caller(&val), CallerKind::ClaudeCode);
         });
+    });
+}
+
+#[test]
+fn gemini_project_dir_env_var_detected() {
+    let val = serde_json::json!({});
+    with_clean_env(|| {
+        temp_env::with_var("GEMINI_PROJECT_DIR", Some("/home/user/project"), || {
+            assert_eq!(detect_caller(&val), CallerKind::GeminiCli);
+        });
+    });
+}
+
+#[test]
+fn polyhook_caller_gemini_cli_detected() {
+    let val = serde_json::json!({});
+    with_clean_env(|| {
+        temp_env::with_var("POLYHOOK_CALLER", Some("gemini-cli"), || {
+            assert_eq!(detect_caller(&val), CallerKind::GeminiCli);
+        });
+    });
+}
+
+#[test]
+fn gemini_cli_before_tool_heuristic() {
+    let val = serde_json::json!({
+        "hook_event_name": "BeforeTool",
+        "tool_name": "run_shell_command",
+        "tool_input": {"command": "ls"},
+        "session_id": "s1"
+    });
+    with_clean_env(|| {
+        assert_eq!(detect_caller(&val), CallerKind::GeminiCli);
+    });
+}
+
+#[test]
+fn gemini_cli_session_start_heuristic() {
+    let val = serde_json::json!({
+        "hook_event_name": "SessionStart",
+        "session_id": "s1",
+        "source": "cli"
+    });
+    with_clean_env(|| {
+        assert_eq!(detect_caller(&val), CallerKind::GeminiCli);
+    });
+}
+
+#[test]
+fn gemini_cli_notification_does_not_match_heuristic() {
+    // "Notification" is ambiguous (shared with Claude Code / Cursor), so the
+    // heuristic deliberately does not match it; env var detection is used instead.
+    let val = serde_json::json!({"hook_event_name": "Notification", "session_id": "s1"});
+    with_clean_env(|| {
+        assert_eq!(detect_caller(&val), CallerKind::Unknown);
     });
 }

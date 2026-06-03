@@ -55,6 +55,7 @@ fn extract_event_field(val: &serde_json::Value, caller: &CallerKind) -> String {
         CallerKind::Windsurf => &["event", "type"],
         CallerKind::Cline => &["type", "event"],
         CallerKind::Amp => &["kind", "event", "type"],
+        CallerKind::GeminiCli => &["hook_event_name"],
         CallerKind::Unknown => &["event", "type", "kind", "hookEvent"],
     };
 
@@ -77,6 +78,7 @@ fn extract_tool_field(val: &serde_json::Value, caller: &CallerKind) -> Option<St
         CallerKind::Windsurf => str_field(val, "tool").map(|s| s.to_owned()),
         CallerKind::Cline => str_field(val, "toolName").map(|s| s.to_owned()),
         CallerKind::Amp => str_field(val, "name").map(|s| s.to_owned()),
+        CallerKind::GeminiCli => str_field(val, "tool_name").map(|s| s.to_owned()),
         CallerKind::Unknown => {
             for key in &["tool_name", "toolName", "tool", "name"] {
                 if let Some(s) = str_field(val, key) {
@@ -105,6 +107,7 @@ fn extract_input(
         CallerKind::Windsurf => val.get("parameters").cloned(),
         CallerKind::Cline => val.get("args").cloned().or_else(|| val.get("input").cloned()),
         CallerKind::Amp => val.get("args").cloned().or_else(|| val.get("input").cloned()),
+        CallerKind::GeminiCli => val.get("tool_input").cloned(),
         CallerKind::Unknown => {
             for key in &["tool_input", "args", "parameters", "input"] {
                 if let Some(v) = val.get(key) {
@@ -130,6 +133,7 @@ fn extract_output(
         CallerKind::Windsurf => val.get("result").cloned(),
         CallerKind::Cline => val.get("result").cloned().or_else(|| val.get("output").cloned()),
         CallerKind::Amp => val.get("result").cloned().or_else(|| val.get("output").cloned()),
+        CallerKind::GeminiCli => val.get("tool_response").cloned(),
         CallerKind::Unknown => {
             for key in &["tool_output", "result", "output"] {
                 if let Some(v) = val.get(key) {

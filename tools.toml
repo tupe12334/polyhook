@@ -39,6 +39,13 @@ homepage    = "https://ampcode.com"
 hooks_docs  = "https://ampcode.com/news/hooks"
 
 [[tool]]
+id          = "gemini-cli"
+name        = "Gemini CLI"
+status      = "supported"
+homepage    = "https://github.com/google-gemini/gemini-cli"
+hooks_docs  = "https://github.com/google-gemini/gemini-cli/blob/main/docs/hooks/index.md"
+
+[[tool]]
 id          = "continue"
 name        = "Continue"
 status      = "in-progress"

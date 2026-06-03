@@ -1,0 +1,1 @@
+{"hook_event_name":"BeforeTool","tool_name":"run_shell_command","tool_input":{"command":"ls -la"},"session_id":"sess_gc_001","transcript_path":"/tmp/gc_transcript.json","cwd":"/home/user","timestamp":"2026-01-28T10:00:00Z"}

@@ -13,6 +13,7 @@ pub fn normalize_tool(vendor: &str, caller: &CallerKind) -> String {
         CallerKind::Windsurf => normalize_windsurf(&lower),
         CallerKind::Cline => normalize_cline(&lower),
         CallerKind::Amp => normalize_amp(&lower),
+        CallerKind::GeminiCli => normalize_gemini_cli(&lower),
         CallerKind::Unknown => None,
     };
 
@@ -112,6 +113,24 @@ fn normalize_amp(lower: &str) -> Option<&'static str> {
         "fs.move" => Some("move_file"),
         "fs.delete" => Some("delete_file"),
         "fs.mkdir" => Some("create_dir"),
+        _ => None,
+    }
+}
+
+fn normalize_gemini_cli(lower: &str) -> Option<&'static str> {
+    match lower {
+        "run_shell_command" => Some("bash"),
+        "read_file" => Some("read_file"),
+        "write_file" => Some("write_file"),
+        "replace" => Some("edit_file"),
+        "list_directory" => Some("list_dir"),
+        "glob" => Some("glob"),
+        "grep" => Some("grep"),
+        "google_web_search" => Some("web_search"),
+        "fetch" => Some("web_fetch"),
+        "move_file" => Some("move_file"),
+        "delete_file" => Some("delete_file"),
+        "make_directory" => Some("create_dir"),
         _ => None,
     }
 }

@@ -60,6 +60,7 @@
     "webfetch",
     "getdiagnostics",
     "claudecode",
+    "geminicli",
     "sess",
     "cline",
     "windsurf",

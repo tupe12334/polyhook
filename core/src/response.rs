@@ -9,6 +9,7 @@ pub fn serialize_response(resp: &HookResponse, caller: &CallerKind) -> Value {
         CallerKind::Windsurf => serialize_windsurf(resp),
         CallerKind::Cline => serialize_cline(resp),
         CallerKind::Amp => serialize_amp(resp),
+        CallerKind::GeminiCli => serialize_gemini_cli(resp),
     }
 }
 
@@ -72,6 +73,18 @@ fn serialize_amp(resp: &HookResponse) -> Value {
         }
         HookResponse::ModifyResponse(m) => {
             json!({ "result": "allow", "modified": m.input })
+        }
+    }
+}
+
+fn serialize_gemini_cli(resp: &HookResponse) -> Value {
+    match resp {
+        HookResponse::ApproveResponse(_) => json!({ "decision": "allow" }),
+        HookResponse::BlockResponse(b) => {
+            json!({ "decision": "deny", "reason": b.message })
+        }
+        HookResponse::ModifyResponse(m) => {
+            json!({ "decision": "allow", "tool_input": m.input })
         }
     }
 }

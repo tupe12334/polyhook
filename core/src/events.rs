@@ -10,6 +10,7 @@ pub fn normalize_event(vendor: &str, caller: &CallerKind) -> String {
         CallerKind::Windsurf => normalize_windsurf_event(vendor),
         CallerKind::Cline => normalize_cline_event(vendor),
         CallerKind::Amp => normalize_amp_event(vendor),
+        CallerKind::GeminiCli => normalize_gemini_cli_event(vendor),
         CallerKind::Unknown => None,
     };
 
@@ -69,6 +70,18 @@ fn normalize_amp_event(vendor: &str) -> Option<&'static str> {
         "session.start" => Some("session:start"),
         "session.stop" => Some("session:stop"),
         "agent.stop" => Some("agent:stop"),
+        _ => None,
+    }
+}
+
+fn normalize_gemini_cli_event(vendor: &str) -> Option<&'static str> {
+    match vendor {
+        "BeforeTool" => Some("tool:before"),
+        "AfterTool" => Some("tool:after"),
+        "SessionStart" => Some("session:start"),
+        "SessionEnd" => Some("session:stop"),
+        "AfterAgent" => Some("agent:stop"),
+        "Notification" => Some("notification"),
         _ => None,
     }
 }

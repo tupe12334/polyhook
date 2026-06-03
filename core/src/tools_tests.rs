@@ -58,8 +58,23 @@ fn unknown_caller_returns_original() {
 #[test] fn amp_fs_mkdir()      { assert_eq!(normalize_tool("fs.mkdir",       &CallerKind::Amp), "create_dir"); }
 
 // Fallthrough: unmapped tool names pass through unchanged for each known caller
-#[test] fn claude_unknown_falls_through()   { assert_eq!(normalize_tool("no_such_tool", &CallerKind::ClaudeCode), "no_such_tool"); }
-#[test] fn cursor_unknown_falls_through()   { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Cursor),    "no_such_tool"); }
-#[test] fn windsurf_unknown_falls_through() { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Windsurf),  "no_such_tool"); }
-#[test] fn cline_unknown_falls_through()    { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Cline),     "no_such_tool"); }
-#[test] fn amp_unknown_falls_through()      { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Amp),       "no_such_tool"); }
+#[test] fn claude_unknown_falls_through()      { assert_eq!(normalize_tool("no_such_tool", &CallerKind::ClaudeCode), "no_such_tool"); }
+#[test] fn cursor_unknown_falls_through()      { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Cursor),     "no_such_tool"); }
+#[test] fn windsurf_unknown_falls_through()    { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Windsurf),   "no_such_tool"); }
+#[test] fn cline_unknown_falls_through()       { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Cline),      "no_such_tool"); }
+#[test] fn amp_unknown_falls_through()         { assert_eq!(normalize_tool("no_such_tool", &CallerKind::Amp),        "no_such_tool"); }
+#[test] fn gemini_cli_unknown_falls_through()  { assert_eq!(normalize_tool("no_such_tool", &CallerKind::GeminiCli),  "no_such_tool"); }
+
+// GeminiCli tool name mappings
+#[test] fn gc_run_shell_command() { assert_eq!(normalize_tool("run_shell_command", &CallerKind::GeminiCli), "bash"); }
+#[test] fn gc_read_file()         { assert_eq!(normalize_tool("read_file",         &CallerKind::GeminiCli), "read_file"); }
+#[test] fn gc_write_file()        { assert_eq!(normalize_tool("write_file",        &CallerKind::GeminiCli), "write_file"); }
+#[test] fn gc_replace()           { assert_eq!(normalize_tool("replace",           &CallerKind::GeminiCli), "edit_file"); }
+#[test] fn gc_list_directory()    { assert_eq!(normalize_tool("list_directory",    &CallerKind::GeminiCli), "list_dir"); }
+#[test] fn gc_glob()              { assert_eq!(normalize_tool("glob",              &CallerKind::GeminiCli), "glob"); }
+#[test] fn gc_grep()              { assert_eq!(normalize_tool("grep",              &CallerKind::GeminiCli), "grep"); }
+#[test] fn gc_google_web_search() { assert_eq!(normalize_tool("google_web_search", &CallerKind::GeminiCli), "web_search"); }
+#[test] fn gc_fetch()             { assert_eq!(normalize_tool("fetch",             &CallerKind::GeminiCli), "web_fetch"); }
+#[test] fn gc_move_file()         { assert_eq!(normalize_tool("move_file",         &CallerKind::GeminiCli), "move_file"); }
+#[test] fn gc_delete_file()       { assert_eq!(normalize_tool("delete_file",       &CallerKind::GeminiCli), "delete_file"); }
+#[test] fn gc_make_directory()    { assert_eq!(normalize_tool("make_directory",    &CallerKind::GeminiCli), "create_dir"); }

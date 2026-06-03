@@ -1,0 +1,1 @@
+{"hook_event_name":"AfterTool","tool_name":"read_file","tool_input":{"path":"/tmp/foo.txt"},"tool_response":{"content":"hello world"},"session_id":"sess_gc_001","transcript_path":"/tmp/gc_transcript.json","cwd":"/home/user","timestamp":"2026-01-28T10:00:01Z"}
