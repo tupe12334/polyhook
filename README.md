@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="polyhook" width="200" />
+</p>
+
 # polyhook
 
 **Write AI coding agent hooks once. Run them everywhere.**
