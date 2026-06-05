@@ -69,9 +69,9 @@ schema/ts: $(SCHEMA)
 schema/go: $(SCHEMA)
 	@echo "Generating Go types → $(GO_OUT)"
 	@mkdir -p $(dir $(GO_OUT))
-	gojsonschema \
-	    --schema-package https://polyhook.dev/schema.json=polyhook \
-	    --output $(GO_OUT) \
+	go-jsonschema \
+	    -p polyhook \
+	    -o $(GO_OUT) \
 	    $(SCHEMA)
 	@echo "Done: $(GO_OUT)"
 
@@ -108,7 +108,7 @@ schema/dotnet: $(SCHEMA)
 schema/python: $(SCHEMA)
 	@echo "Generating Python types → $(PYTHON_OUT)"
 	@mkdir -p $(dir $(PYTHON_OUT))
-	datamodel-codegen \
+	python3 -m datamodel_code_generator \
 	    --input $(SCHEMA) \
 	    --input-file-type jsonschema \
 	    --output $(PYTHON_OUT) \

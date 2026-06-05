@@ -11,16 +11,10 @@
  * This interface was referenced by `PolyhookSchema`'s JSON-Schema
  * via the `definition` "CallerKind".
  */
-export type CallerKind = "claude-code" | "cursor" | "windsurf" | "cline" | "amp" | "unknown";
-
+export type CallerKind = "claude-code" | "cursor" | "windsurf" | "cline" | "amp" | "gemini-cli" | "unknown";
 /**
- * The response a hook handler returns to polyhook.wasm, which translates it into the format expected by the detected caller. Discriminated on the 'action' field.
- *
- * This interface was referenced by `PolyhookSchema`'s JSON-Schema
- * via the `definition` "HookResponse".
+ * The AI coding tool that invoked this hook binary, detected from environment variables and stdin format. Defaults to 'unknown' when detection fails.
  */
-export type HookResponse = ApproveResponse | BlockResponse | ModifyResponse;
-
 /**
  * Source-of-truth type definitions for the polyhook SDK. All language-specific types (Rust, TypeScript, Go, Python, .NET) are generated from this file.
  */
@@ -42,6 +36,10 @@ export interface HookEvent {
    * Normalized tool name (e.g. 'bash', 'write_file', 'read_file'). Present for tool:before and tool:after events; null for all other event kinds.
    */
   tool?: string | null;
+  /**
+   * The executable being invoked. Only present for bash tool events where input.command is available. Extracted as the first non-env-assignment token of the command string (e.g. 'git' from 'GIT_DIR=.git git commit'). Null for all other tool kinds.
+   */
+  bin?: string | null;
   /**
    * Tool input arguments as a free-form object. Present for tool:before events; null otherwise. The shape depends on the specific tool being called.
    */

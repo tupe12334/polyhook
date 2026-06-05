@@ -82,6 +82,15 @@ public sealed record HookEvent
     public string? Tool { get; init; }
 
     /// <summary>
+    /// The executable being invoked. Only present for bash tool events where
+    /// input.command is available. Extracted as the first non-env-assignment token
+    /// of the command string (e.g. 'git' from 'GIT_DIR=.git git commit').
+    /// Null for all other tool kinds.
+    /// </summary>
+    [JsonPropertyName("bin")]
+    public string? Bin { get; init; }
+
+    /// <summary>
     /// Tool input arguments as a free-form object. Present for tool:before
     /// events; null otherwise. The shape depends on the specific tool being called.
     /// </summary>
