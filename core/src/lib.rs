@@ -15,20 +15,20 @@ use std::cell::RefCell;
 use std::io::{Read, Write};
 
 use parse::parse_event;
-use response::serialize_response;
+use response::serialize_response_with_event;
 
-// Store the caller from the most recently parsed event so that `respond` can
-// serialise the response in the correct format without the caller needing to
-// thread the CallerKind through their code.
+// Store the caller and event from the most recently parsed event so that
+// `respond` can serialise the response in the correct format.
 thread_local! {
     static LAST_CALLER: RefCell<CallerKind> = const { RefCell::new(CallerKind::Unknown) };
+    static LAST_EVENT: RefCell<Option<HookEventEvent>> = const { RefCell::new(None) };
 }
 
 /// Read a [`HookEvent`] from an arbitrary reader.
 ///
-/// Reads until EOF, then parses the JSON payload.  The detected [`CallerKind`]
-/// is stored in a thread-local so that a subsequent [`respond_to`] call can
-/// serialise the response in the correct format.
+/// Reads until EOF, then parses the JSON payload. The detected [`CallerKind`]
+/// and event type are stored in thread-locals so that a subsequent [`respond_to`]
+/// call can serialise the response in the correct format.
 pub fn read_from(r: &mut impl Read) -> Result<HookEvent, String> {
     let mut buf = Vec::new();
     r.read_to_end(&mut buf)
@@ -36,9 +36,11 @@ pub fn read_from(r: &mut impl Read) -> Result<HookEvent, String> {
 
     let event = parse_event(&buf)?;
 
-    // Persist caller so `respond_to` / `respond` can use it.
     LAST_CALLER.with(|c| {
         *c.borrow_mut() = event.caller;
+    });
+    LAST_EVENT.with(|e| {
+        *e.borrow_mut() = Some(event.event);
     });
 
     Ok(event)
@@ -48,7 +50,8 @@ pub fn read_from(r: &mut impl Read) -> Result<HookEvent, String> {
 /// the agent that was detected during the most recent [`read_from`] call.
 pub fn respond_to(w: &mut impl Write, response: &HookResponse) -> Result<(), String> {
     let caller = LAST_CALLER.with(|c| *c.borrow());
-    let value = serialize_response(response, &caller);
+    let event = LAST_EVENT.with(|e| *e.borrow());
+    let value = serialize_response_with_event(response, &caller, event);
     // serde_json::Value is always serializable; expect is safe here.
     let json = serde_json::to_string(&value).expect("serde_json::Value is always serializable");
 

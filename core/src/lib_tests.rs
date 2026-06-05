@@ -51,6 +51,22 @@ fn respond_to_block_uses_detected_caller() {
 }
 
 #[test]
+fn respond_to_claude_pre_tool_use_block_uses_hook_specific_output() {
+    let mut cursor = Cursor::new(CLAUDE_PRE_TOOL.as_bytes());
+    let _ = read_from(&mut cursor).expect("read_from should succeed");
+
+    let mut output: Vec<u8> = Vec::new();
+    respond_to(&mut output, &HookResponse::block("blocked")).expect("respond_to should succeed");
+
+    let json: serde_json::Value =
+        serde_json::from_slice(&output).expect("output should be valid JSON");
+    assert_eq!(json["hookSpecificOutput"]["hookEventName"], "PreToolUse");
+    assert_eq!(json["hookSpecificOutput"]["permissionDecision"], "deny");
+    assert_eq!(json["hookSpecificOutput"]["permissionDecisionReason"], "blocked");
+    assert_eq!(json["hookSpecificOutput"]["additionalContext"], serde_json::Value::Null);
+}
+
+#[test]
 fn respond_to_modify_uses_detected_caller() {
     let mut cursor = Cursor::new(CLAUDE_PRE_TOOL.as_bytes());
     let _ = read_from(&mut cursor).expect("read_from should succeed");
