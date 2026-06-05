@@ -1,10 +1,24 @@
-use crate::types::{CallerKind, HookResponse};
+use crate::types::{CallerKind, HookEventEvent, HookResponse};
 use serde_json::{json, Value};
 
 /// Serialize a [`HookResponse`] into the JSON format expected by the detected caller.
+///
+/// Does not use event-type context. For PreToolUse blocking on Claude Code, prefer
+/// [`serialize_response_with_event`] so the correct `hookSpecificOutput` format is used.
 pub fn serialize_response(resp: &HookResponse, caller: &CallerKind) -> Value {
+    serialize_response_with_event(resp, caller, None)
+}
+
+/// Like [`serialize_response`] but uses the event type to pick the correct block format.
+/// For Claude Code + `tool:before`, emits `hookSpecificOutput.permissionDecision: "deny"`
+/// instead of `decision: "block"` (which would terminate the whole session).
+pub(crate) fn serialize_response_with_event(
+    resp: &HookResponse,
+    caller: &CallerKind,
+    event: Option<HookEventEvent>,
+) -> Value {
     match caller {
-        CallerKind::ClaudeCode | CallerKind::Unknown => serialize_claude_code(resp),
+        CallerKind::ClaudeCode | CallerKind::Unknown => serialize_claude_code(resp, event),
         CallerKind::Cursor => serialize_cursor(resp),
         CallerKind::Windsurf => serialize_windsurf(resp),
         CallerKind::Cline => serialize_cline(resp),
@@ -17,11 +31,21 @@ pub fn serialize_response(resp: &HookResponse, caller: &CallerKind) -> Value {
 // Per-caller serializers
 // ---------------------------------------------------------------------------
 
-fn serialize_claude_code(resp: &HookResponse) -> Value {
+fn serialize_claude_code(resp: &HookResponse, event: Option<HookEventEvent>) -> Value {
     match resp {
         HookResponse::ApproveResponse(_) => json!({}),
         HookResponse::BlockResponse(b) => {
-            json!({ "decision": "block", "reason": b.message })
+            if matches!(event, Some(HookEventEvent::ToolBefore)) {
+                json!({
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": b.message
+                    }
+                })
+            } else {
+                json!({ "decision": "block", "reason": b.message })
+            }
         }
         HookResponse::ModifyResponse(m) => {
             json!({ "decision": "approve", "tool_input": m.input })

@@ -10,7 +10,36 @@ fn claude_code_approve() {
 
 #[test]
 fn claude_code_block() {
+    // serialize_response has no event context → falls back to decision:block
     let val = serialize_response(&HookResponse::block("not allowed"), &CallerKind::ClaudeCode);
+    assert_eq!(val["decision"], json!("block"));
+    assert_eq!(val["reason"], json!("not allowed"));
+}
+
+#[test]
+fn claude_code_pre_tool_use_block_uses_hook_specific_output() {
+    use crate::response::serialize_response_with_event;
+    use crate::types::HookEventEvent;
+    let val = serialize_response_with_event(
+        &HookResponse::block("not allowed"),
+        &CallerKind::ClaudeCode,
+        Some(HookEventEvent::ToolBefore),
+    );
+    assert_eq!(val["hookSpecificOutput"]["hookEventName"], json!("PreToolUse"));
+    assert_eq!(val["hookSpecificOutput"]["permissionDecision"], json!("deny"));
+    assert_eq!(val["hookSpecificOutput"]["permissionDecisionReason"], json!("not allowed"));
+    assert_eq!(val["hookSpecificOutput"]["additionalContext"], serde_json::Value::Null);
+}
+
+#[test]
+fn claude_code_post_tool_use_block_uses_decision() {
+    use crate::response::serialize_response_with_event;
+    use crate::types::HookEventEvent;
+    let val = serialize_response_with_event(
+        &HookResponse::block("not allowed"),
+        &CallerKind::ClaudeCode,
+        Some(HookEventEvent::ToolAfter),
+    );
     assert_eq!(val["decision"], json!("block"));
     assert_eq!(val["reason"], json!("not allowed"));
 }

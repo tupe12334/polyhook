@@ -331,7 +331,7 @@ mod tests {
 
             let (payload, total) = read_length_prefixed(out_ptr);
             let s = String::from_utf8(payload).expect("valid utf8");
-            // Claude Code block format should have "block" in the JSON.
+            // Claude Code block format (WASM path, no event context) uses decision:block.
             assert!(s.contains("block"), "expected 'block' in: {s}");
 
             dealloc(input_ptr, json.len());
