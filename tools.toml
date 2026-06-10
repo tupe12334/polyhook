@@ -46,6 +46,13 @@ homepage    = "https://github.com/google-gemini/gemini-cli"
 hooks_docs  = "https://github.com/google-gemini/gemini-cli/blob/main/docs/hooks/index.md"
 
 [[tool]]
+id          = "hermes"
+name        = "Hermes Agent"
+status      = "supported"
+homepage    = "https://github.com/NousResearch/hermes-agent"
+hooks_docs  = "https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks"
+
+[[tool]]
 id          = "continue"
 name        = "Continue"
 status      = "in-progress"

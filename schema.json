@@ -14,6 +14,7 @@
         "cline",
         "amp",
         "gemini-cli",
+        "hermes",
         "unknown"
       ]
     },

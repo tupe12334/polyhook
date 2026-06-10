@@ -126,15 +126,17 @@ func TestCallerKindConstants(t *testing.T) {
 		got   polyhook.CallerKind
 		want  string
 	}{
-		{"ClaudeCode", polyhook.CallerClaudeCode, "claude-code"},
-		{"Cursor", polyhook.CallerCursor, "cursor"},
-		{"Windsurf", polyhook.CallerWindsurf, "windsurf"},
-		{"Cline", polyhook.CallerCline, "cline"},
-		{"Amp", polyhook.CallerAmp, "amp"},
-		{"Unknown", polyhook.CallerUnknown, "unknown"},
+		{"ClaudeCode", polyhook.CallerKindClaudeCode, "claude-code"},
+		{"Cursor", polyhook.CallerKindCursor, "cursor"},
+		{"Windsurf", polyhook.CallerKindWindsurf, "windsurf"},
+		{"Cline", polyhook.CallerKindCline, "cline"},
+		{"Amp", polyhook.CallerKindAmp, "amp"},
+		{"GeminiCli", polyhook.CallerKindGeminiCli, "gemini-cli"},
+		{"Hermes", polyhook.CallerKindHermes, "hermes"},
+		{"Unknown", polyhook.CallerKindUnknown, "unknown"},
 	}
 	for _, tc := range cases {
-		if tc.got != tc.want {
+		if string(tc.got) != tc.want {
 			t.Errorf("Caller%s = %q; want %q", tc.label, tc.got, tc.want)
 		}
 	}
@@ -165,16 +167,20 @@ func TestHookEventUnmarshal(t *testing.T) {
 	if ev.Tool == nil || *ev.Tool != tool {
 		t.Errorf("Tool = %v; want %q", ev.Tool, tool)
 	}
-	if ev.SessionID != "sess_abc" {
-		t.Errorf("SessionID = %q; want sess_abc", ev.SessionID)
+	if ev.SessionId != "sess_abc" {
+		t.Errorf("SessionId = %q; want sess_abc", ev.SessionId)
 	}
-	if ev.AgentID == nil || *ev.AgentID != agentID {
-		t.Errorf("AgentID = %v; want %q", ev.AgentID, agentID)
+	if ev.AgentId == nil || *ev.AgentId != agentID {
+		t.Errorf("AgentId = %v; want %q", ev.AgentId, agentID)
 	}
-	if ev.Caller != polyhook.CallerClaudeCode {
-		t.Errorf("Caller = %q; want %q", ev.Caller, polyhook.CallerClaudeCode)
+	if ev.Caller != polyhook.CallerKindClaudeCode {
+		t.Errorf("Caller = %q; want %q", ev.Caller, polyhook.CallerKindClaudeCode)
 	}
-	if cmd, ok := ev.Input["command"]; !ok || cmd != "ls -la" {
+	input, ok := ev.Input.(map[string]interface{})
+	if !ok {
+		t.Fatalf("Input = %T; want map[string]interface{}", ev.Input)
+	}
+	if cmd, ok := input["command"]; !ok || cmd != "ls -la" {
 		t.Errorf("Input[command] = %v; want ls -la", cmd)
 	}
 }
@@ -188,8 +194,8 @@ func TestHookEventOptionalFields(t *testing.T) {
 	if ev.Tool != nil {
 		t.Errorf("Tool should be nil for session:start; got %q", *ev.Tool)
 	}
-	if ev.AgentID != nil {
-		t.Errorf("AgentID should be nil; got %q", *ev.AgentID)
+	if ev.AgentId != nil {
+		t.Errorf("AgentId should be nil; got %q", *ev.AgentId)
 	}
 	if ev.Input != nil {
 		t.Errorf("Input should be nil; got %v", ev.Input)
@@ -305,7 +311,7 @@ func TestReadFrom_TableDriven(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ReadFrom: %v", err)
 			}
-			if event.Event != tc.wantEvent {
+			if string(event.Event) != tc.wantEvent {
 				t.Errorf("Event = %q; want %q", event.Event, tc.wantEvent)
 			}
 			if tc.wantTool != "" {
@@ -319,11 +325,12 @@ func TestReadFrom_TableDriven(t *testing.T) {
 					t.Errorf("Tool = %q; want nil", *event.Tool)
 				}
 			}
-			if event.Caller != tc.wantCaller {
+			if string(event.Caller) != tc.wantCaller {
 				t.Errorf("Caller = %q; want %q", event.Caller, tc.wantCaller)
 			}
 			if tc.wantInputKey != "" {
-				if event.Input == nil || event.Input[tc.wantInputKey] == nil {
+				input, ok := event.Input.(map[string]interface{})
+				if !ok || input[tc.wantInputKey] == nil {
 					t.Errorf("Input[%q] missing; got %v", tc.wantInputKey, event.Input)
 				}
 			}
@@ -720,10 +727,10 @@ func TestReadFrom_WithRealWASM(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ReadFrom: %v", err)
 			}
-			if ev.Caller != tc.wantCaller {
+			if string(ev.Caller) != tc.wantCaller {
 				t.Errorf("Caller = %q; want %q", ev.Caller, tc.wantCaller)
 			}
-			if ev.Event != tc.wantEvent {
+			if string(ev.Event) != tc.wantEvent {
 				t.Errorf("Event = %q; want %q", ev.Event, tc.wantEvent)
 			}
 		})

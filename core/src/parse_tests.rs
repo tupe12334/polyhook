@@ -267,3 +267,42 @@ fn gemini_cli_session_start() {
     assert!(evt.input.is_none());
     assert!(evt.output.is_none());
 }
+
+#[test]
+fn hermes_pre_tool() {
+    let raw = fixture("hermes-pre-tool.json");
+    let evt = parse_event(&raw).expect("parse failed");
+    assert_eq!(evt.caller, CallerKind::Hermes);
+    assert_eq!(evt.event.to_string(), "tool:before");
+    assert_eq!(evt.tool.as_deref(), Some("bash"));
+    assert_eq!(evt.session_id, "sess_hermes_001");
+    let input = evt.input.expect("input should be present");
+    assert_eq!(input["command"], json!("ls -la"));
+    assert!(evt.output.is_none());
+}
+
+#[test]
+fn hermes_post_tool() {
+    let raw = fixture("hermes-post-tool.json");
+    let evt = parse_event(&raw).expect("parse failed");
+    assert_eq!(evt.caller, CallerKind::Hermes);
+    assert_eq!(evt.event.to_string(), "tool:after");
+    assert_eq!(evt.tool.as_deref(), Some("read_file"));
+    assert_eq!(evt.session_id, "sess_hermes_001");
+    let input = evt.input.expect("input should be present");
+    assert_eq!(input["path"], json!("/tmp/foo.txt"));
+    let output = evt.output.expect("output should be present");
+    assert_eq!(output["content"], json!("hello world"));
+}
+
+#[test]
+fn hermes_session_start() {
+    let raw = fixture("hermes-session-start.json");
+    let evt = parse_event(&raw).expect("parse failed");
+    assert_eq!(evt.caller, CallerKind::Hermes);
+    assert_eq!(evt.event.to_string(), "session:start");
+    assert_eq!(evt.session_id, "sess_hermes_001");
+    assert!(evt.tool.is_none());
+    assert!(evt.input.is_none());
+    assert!(evt.output.is_none());
+}

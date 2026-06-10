@@ -11,6 +11,7 @@ pub fn normalize_event(vendor: &str, caller: &CallerKind) -> String {
         CallerKind::Cline => normalize_cline_event(vendor),
         CallerKind::Amp => normalize_amp_event(vendor),
         CallerKind::GeminiCli => normalize_gemini_cli_event(vendor),
+        CallerKind::Hermes => normalize_hermes_event(vendor),
         CallerKind::Unknown => None,
     };
 
@@ -82,6 +83,21 @@ fn normalize_gemini_cli_event(vendor: &str) -> Option<&'static str> {
         "SessionEnd" => Some("session:stop"),
         "AfterAgent" => Some("agent:stop"),
         "Notification" => Some("notification"),
+        _ => None,
+    }
+}
+
+fn normalize_hermes_event(vendor: &str) -> Option<&'static str> {
+    match vendor {
+        "pre_tool_call" => Some("tool:before"),
+        "post_tool_call" => Some("tool:after"),
+        "on_session_start" => Some("session:start"),
+        "on_session_end" | "on_session_finalize" => Some("session:stop"),
+        "subagent_stop" => Some("agent:stop"),
+        // Hermes pre_llm_call can inject extra prompt context. Polyhook's
+        // current normalized event schema has no prompt/context event, so keep
+        // it as a non-tool notification rather than dropping the invocation.
+        "pre_llm_call" => Some("notification"),
         _ => None,
     }
 }

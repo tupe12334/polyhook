@@ -17,6 +17,7 @@ pub fn detect_caller(stdin: &serde_json::Value) -> CallerKind {
             "cline" => return CallerKind::Cline,
             "amp" => return CallerKind::Amp,
             "gemini-cli" | "geminicli" => return CallerKind::GeminiCli,
+            "hermes" | "hermes-agent" | "hermesagent" => return CallerKind::Hermes,
             _ => {}
         }
     }
@@ -46,12 +47,29 @@ pub fn detect_caller(stdin: &serde_json::Value) -> CallerKind {
         let has = |key: &str| obj.contains_key(key);
         let str_val = |key: &str| obj.get(key).and_then(|v| v.as_str()).unwrap_or("");
 
-        // Gemini CLI: hook_event_name with Gemini-specific values.
-        // Checked before the Claude Code heuristic because both send tool_name + tool_input.
+        // Gemini CLI / Hermes: hook_event_name with caller-specific values.
+        // Checked before the Claude Code heuristic because all three send
+        // tool_name + tool_input for tool events.
         match str_val("hook_event_name") {
-            "BeforeTool" | "AfterTool" | "BeforeAgent" | "AfterAgent" | "BeforeModel"
-            | "AfterModel" | "BeforeToolSelection" | "PreCompress" | "SessionStart"
+            "BeforeTool"
+            | "AfterTool"
+            | "BeforeAgent"
+            | "AfterAgent"
+            | "BeforeModel"
+            | "AfterModel"
+            | "BeforeToolSelection"
+            | "PreCompress"
+            | "SessionStart"
             | "SessionEnd" => return CallerKind::GeminiCli,
+            "pre_tool_call"
+            | "post_tool_call"
+            | "pre_llm_call"
+            | "on_session_start"
+            | "on_session_end"
+            | "on_session_finalize"
+            | "subagent_stop" => {
+                return CallerKind::Hermes;
+            }
             _ => {}
         }
 

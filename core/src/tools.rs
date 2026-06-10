@@ -14,6 +14,7 @@ pub fn normalize_tool(vendor: &str, caller: &CallerKind) -> String {
         CallerKind::Cline => normalize_cline(&lower),
         CallerKind::Amp => normalize_amp(&lower),
         CallerKind::GeminiCli => normalize_gemini_cli(&lower),
+        CallerKind::Hermes => normalize_hermes(&lower),
         CallerKind::Unknown => None,
     };
 
@@ -131,6 +132,21 @@ fn normalize_gemini_cli(lower: &str) -> Option<&'static str> {
         "move_file" => Some("move_file"),
         "delete_file" => Some("delete_file"),
         "make_directory" => Some("create_dir"),
+        _ => None,
+    }
+}
+
+fn normalize_hermes(lower: &str) -> Option<&'static str> {
+    match lower {
+        "terminal" => Some("bash"),
+        "read_file" => Some("read_file"),
+        "write_file" => Some("write_file"),
+        "patch" => Some("edit_file"),
+        "search_files" => Some("grep"),
+        "delegate_task" => Some("spawn_agent"),
+        "browser_back" | "browser_click" | "browser_console" | "browser_get_images"
+        | "browser_navigate" | "browser_press" | "browser_scroll" | "browser_snapshot"
+        | "browser_type" | "browser_vision" => Some("browser"),
         _ => None,
     }
 }

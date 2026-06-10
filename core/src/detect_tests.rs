@@ -141,6 +141,26 @@ fn polyhook_caller_gemini_cli_detected() {
 }
 
 #[test]
+fn polyhook_caller_hermes_detected() {
+    let val = serde_json::json!({});
+    with_clean_env(|| {
+        temp_env::with_var("POLYHOOK_CALLER", Some("hermes"), || {
+            assert_eq!(detect_caller(&val), CallerKind::Hermes);
+        });
+    });
+}
+
+#[test]
+fn polyhook_caller_hermes_agent_alias_detected() {
+    let val = serde_json::json!({});
+    with_clean_env(|| {
+        temp_env::with_var("POLYHOOK_CALLER", Some("hermes-agent"), || {
+            assert_eq!(detect_caller(&val), CallerKind::Hermes);
+        });
+    });
+}
+
+#[test]
 fn gemini_cli_before_tool_heuristic() {
     let val = serde_json::json!({
         "hook_event_name": "BeforeTool",
@@ -172,5 +192,30 @@ fn gemini_cli_notification_does_not_match_heuristic() {
     let val = serde_json::json!({"hook_event_name": "Notification", "session_id": "s1"});
     with_clean_env(|| {
         assert_eq!(detect_caller(&val), CallerKind::Unknown);
+    });
+}
+
+#[test]
+fn hermes_pre_tool_call_heuristic_beats_claude_code_shape() {
+    let val = serde_json::json!({
+        "hook_event_name": "pre_tool_call",
+        "tool_name": "terminal",
+        "tool_input": {"command": "ls"},
+        "session_id": "s1"
+    });
+    with_clean_env(|| {
+        assert_eq!(detect_caller(&val), CallerKind::Hermes);
+    });
+}
+
+#[test]
+fn hermes_session_start_heuristic() {
+    let val = serde_json::json!({
+        "hook_event_name": "on_session_start",
+        "session_id": "s1",
+        "cwd": "/tmp/project"
+    });
+    with_clean_env(|| {
+        assert_eq!(detect_caller(&val), CallerKind::Hermes);
     });
 }

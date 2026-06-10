@@ -24,6 +24,7 @@ pub(crate) fn serialize_response_with_event(
         CallerKind::Cline => serialize_cline(resp),
         CallerKind::Amp => serialize_amp(resp),
         CallerKind::GeminiCli => serialize_gemini_cli(resp),
+        CallerKind::Hermes => serialize_hermes(resp),
     }
 }
 
@@ -109,6 +110,18 @@ fn serialize_gemini_cli(resp: &HookResponse) -> Value {
         }
         HookResponse::ModifyResponse(m) => {
             json!({ "decision": "allow", "tool_input": m.input })
+        }
+    }
+}
+
+fn serialize_hermes(resp: &HookResponse) -> Value {
+    match resp {
+        HookResponse::ApproveResponse(_) => json!({}),
+        HookResponse::BlockResponse(b) => {
+            json!({ "action": "block", "message": b.message })
+        }
+        HookResponse::ModifyResponse(m) => {
+            json!({ "action": "modify", "tool_input": m.input })
         }
     }
 }

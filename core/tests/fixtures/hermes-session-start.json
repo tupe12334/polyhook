@@ -1,0 +1,6 @@
+{
+  "hook_event_name": "on_session_start",
+  "session_id": "sess_hermes_001",
+  "cwd": "/tmp/project",
+  "extra": {"source": "cli"}
+}

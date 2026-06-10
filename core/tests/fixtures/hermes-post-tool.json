@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "post_tool_call",
+  "tool_name": "read_file",
+  "tool_input": {"path": "/tmp/foo.txt"},
+  "tool_output": {"content": "hello world"},
+  "session_id": "sess_hermes_001",
+  "cwd": "/tmp/project",
+  "extra": {"tool_call_id": "call_002"}
+}

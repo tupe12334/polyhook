@@ -6,7 +6,7 @@
 #
 # Prerequisites (install once):
 #   TypeScript  : npm install -g json-schema-to-typescript
-#   Go          : go install github.com/omissis/go-jsonschema/cmd/gojsonschema@latest
+#   Go          : go install github.com/atombender/go-jsonschema/cmd/gojsonschema@v0.12.1
 #   Python      : pip install datamodel-code-generator
 #   .NET        : dotnet tool install --global NJsonSchema.CodeGeneration.CLI  (or use NSwag)
 #   Rust        : types are hand-maintained in core/src/types.rs
@@ -70,7 +70,7 @@ schema/go: $(SCHEMA)
 	@echo "Generating Go types → $(GO_OUT)"
 	@mkdir -p $(dir $(GO_OUT))
 	gojsonschema \
-	    --schema-package https://polyhook.dev/schema.json=polyhook \
+	    --package polyhook \
 	    --output $(GO_OUT) \
 	    $(SCHEMA)
 	@echo "Done: $(GO_OUT)"
@@ -112,7 +112,7 @@ schema/python: $(SCHEMA)
 	    --input $(SCHEMA) \
 	    --input-file-type jsonschema \
 	    --output $(PYTHON_OUT) \
-	    --output-model-type pydantic_v2.BaseModel \
+	    --output-model-type dataclasses.dataclass \
 	    --target-python-version 3.10 \
 	    --use-standard-collections \
 	    --use-union-operator \
@@ -139,13 +139,13 @@ test:
 	@echo "── Rust ────────────────────────────────────────────────"
 	cargo test
 	@echo "── TypeScript ──────────────────────────────────────────"
-	npm test -w sdk-ts
+	cd packages/sdk-ts && pnpm test
 	@echo "── Go ──────────────────────────────────────────────────"
 	cd packages/sdk-go && go test ./...
 	@echo "── .NET ────────────────────────────────────────────────"
 	dotnet test packages/sdk-dotnet
 	@echo "── Python ──────────────────────────────────────────────"
-	python -m pytest packages/sdk-python
+	cd packages/sdk-python && uv run --extra dev pytest
 	@echo "All tests passed."
 
 # ── spell ─────────────────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ help:
 	@echo ""
 	@echo "Prerequisites:"
 	@echo "  TypeScript : npm install -g json-schema-to-typescript"
-	@echo "  Go         : go install github.com/omissis/go-jsonschema/cmd/gojsonschema@latest"
+	@echo "  Go         : go install github.com/atombender/go-jsonschema/cmd/gojsonschema@v0.12.1"
 	@echo "  Python     : pip install datamodel-code-generator"
 	@echo "  .NET       : dotnet tool install --global NJsonSchema.CodeGeneration.CLI"
 	@echo "  wasm32 target : rustup target add wasm32-unknown-unknown"
