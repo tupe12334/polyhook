@@ -132,8 +132,14 @@
     "esbuild",
     "behaviour",
     "testpaths",
+    "clippy",
     "toolu",
-    "clippy"
+    "atombender",
+    "dataclasses",
+    "dataclass",
+    "hermesagent",
+    "mapstructure",
+    "cpanel"
   ],
   "overrides": [
     {
