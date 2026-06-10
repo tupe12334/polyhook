@@ -22,7 +22,7 @@ DOTNET_OUT    := packages/sdk-dotnet/GeneratedTypes.cs
 WASM_OUT      := polyhook.wasm
 
 .PHONY: all schema schema/rust schema/ts schema/go schema/dotnet schema/python \
-        wasm test spell install-hooks readme help
+        wasm test spell format install-hooks readme help
 
 # ── Default ──────────────────────────────────────────────────────────────────
 all: schema
@@ -151,7 +151,24 @@ test:
 # ── spell ─────────────────────────────────────────────────────────────────────
 ## spell: Run cspell spell check across the repository
 spell:
-	cspell "**" --no-progress
+	npx --yes cspell "**" --no-progress
+
+# ── format ────────────────────────────────────────────────────────────────────
+## format: Format Rust, TypeScript, Go, Python, and .NET sources
+format:
+	@echo "── Rust ────────────────────────────────────────────────"
+	cargo fmt --all
+	@echo "── TypeScript ──────────────────────────────────────────"
+	cd packages/sdk-ts && npx --yes prettier --write "src/**/*.ts" "examples/**/*.ts" "*.config.ts"
+	@echo "── Go ──────────────────────────────────────────────────"
+	find packages/sdk-go -name '*.go' -not -path '*/vendor/*' -exec gofmt -w {} +
+	@echo "── Python ──────────────────────────────────────────────"
+	uvx ruff format packages/sdk-python/src packages/sdk-python/examples
+	@echo "── .NET ────────────────────────────────────────────────"
+	dotnet format packages/sdk-dotnet/Polyhook.Sdk.csproj --include \
+		packages/sdk-dotnet/*.cs \
+		packages/sdk-dotnet/examples/BlockRmRf/Program.cs \
+		packages/sdk-dotnet/examples/LogAllTools/Program.cs
 
 # ── readme ────────────────────────────────────────────────────────────────────
 ## readme: Generate README.md for every SDK package from scripts/gen-readmes.sh

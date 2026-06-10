@@ -134,7 +134,8 @@
     "testpaths",
     "toolu",
     "clippy",
-    "cpanel"
+    "cpanel",
+    "gofmt"
   ],
   "overrides": [
     {

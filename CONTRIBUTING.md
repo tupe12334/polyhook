@@ -12,9 +12,13 @@ rustup target add wasm32-unknown-unknown
 # Node (for TypeScript SDK)
 npm install
 
-# Git hooks (spell check on push)
+# Git hooks (formatting, spell check, README generation, and coverage checks on push)
 make install-hooks
 ```
+
+The committed pre-push hook runs `make format` before the existing checks so
+contributors cannot push unformatted Rust, TypeScript, Go, Python, or .NET
+sources after installing hooks.
 
 ## Project Structure
 
