@@ -11,7 +11,8 @@ fn main() {
 
     let response = match event.tool.as_deref() {
         Some("bash") => {
-            let cmd = event.input
+            let cmd = event
+                .input
                 .as_ref()
                 .and_then(|i| i.get("command"))
                 .and_then(|v| v.as_str())

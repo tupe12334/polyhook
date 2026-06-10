@@ -46,7 +46,9 @@ mod tests {
     #[test]
     fn modify_with_object_preserves_fields() {
         let obj = serde_json::json!({"key": "value", "num": 42});
-        let HookResponse::ModifyResponse(m) = HookResponse::modify(obj) else { unreachable!() };
+        let HookResponse::ModifyResponse(m) = HookResponse::modify(obj) else {
+            unreachable!()
+        };
         assert_eq!(m.input.len(), 2);
         assert_eq!(m.input["key"], "value");
         assert_eq!(m.input["num"], 42);
@@ -54,19 +56,28 @@ mod tests {
 
     #[test]
     fn modify_with_string_produces_empty_input() {
-        let HookResponse::ModifyResponse(m) = HookResponse::modify(serde_json::Value::String("not an object".into())) else { unreachable!() };
+        let HookResponse::ModifyResponse(m) =
+            HookResponse::modify(serde_json::Value::String("not an object".into()))
+        else {
+            unreachable!()
+        };
         assert!(m.input.is_empty());
     }
 
     #[test]
     fn modify_with_array_produces_empty_input() {
-        let HookResponse::ModifyResponse(m) = HookResponse::modify(serde_json::json!([1, 2, 3])) else { unreachable!() };
+        let HookResponse::ModifyResponse(m) = HookResponse::modify(serde_json::json!([1, 2, 3]))
+        else {
+            unreachable!()
+        };
         assert!(m.input.is_empty());
     }
 
     #[test]
     fn modify_with_null_produces_empty_input() {
-        let HookResponse::ModifyResponse(m) = HookResponse::modify(serde_json::Value::Null) else { unreachable!() };
+        let HookResponse::ModifyResponse(m) = HookResponse::modify(serde_json::Value::Null) else {
+            unreachable!()
+        };
         assert!(m.input.is_empty());
     }
 }

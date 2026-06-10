@@ -49,8 +49,15 @@ pub fn detect_caller(stdin: &serde_json::Value) -> CallerKind {
         // Gemini CLI: hook_event_name with Gemini-specific values.
         // Checked before the Claude Code heuristic because both send tool_name + tool_input.
         match str_val("hook_event_name") {
-            "BeforeTool" | "AfterTool" | "BeforeAgent" | "AfterAgent" | "BeforeModel"
-            | "AfterModel" | "BeforeToolSelection" | "PreCompress" | "SessionStart"
+            "BeforeTool"
+            | "AfterTool"
+            | "BeforeAgent"
+            | "AfterAgent"
+            | "BeforeModel"
+            | "AfterModel"
+            | "BeforeToolSelection"
+            | "PreCompress"
+            | "SessionStart"
             | "SessionEnd" => return CallerKind::GeminiCli,
             _ => {}
         }

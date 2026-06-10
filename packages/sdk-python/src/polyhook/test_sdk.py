@@ -23,6 +23,7 @@ import pytest
 # Helpers for building mock WASM memory payloads
 # ---------------------------------------------------------------------------
 
+
 def _length_prefix(payload: bytes) -> bytes:
     """Produce a 4-byte LE length prefix followed by *payload*."""
     return struct.pack("<I", len(payload)) + payload
@@ -36,10 +37,12 @@ def _json_payload(obj: Any) -> bytes:
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def reset_wasm_state():
     """Reset module-level WASM singletons before every test."""
     import polyhook.sdk as sdk
+
     sdk._store = None
     sdk._instance = None
     sdk._memory = None
@@ -51,7 +54,9 @@ def reset_wasm_state():
     sdk._last_caller = "unknown"
 
 
-def _make_wasm_mock(parse_response: Any, serialize_response: bytes | None = None) -> tuple[MagicMock, MagicMock]:
+def _make_wasm_mock(
+    parse_response: Any, serialize_response: bytes | None = None
+) -> tuple[MagicMock, MagicMock]:
     """
     Build a (store_mock, instance_mock) pair whose exports behave like a real
     WASM instance for a single round-trip.
@@ -132,7 +137,9 @@ def _patch_wasm(parse_response: Any, serialize_response: bytes | None = None):
     """Context manager that replaces WASM internals with mock objects."""
     import polyhook.sdk as sdk
 
-    store_mock, instance_mock, call_count = _make_wasm_mock(parse_response, serialize_response)
+    store_mock, instance_mock, call_count = _make_wasm_mock(
+        parse_response, serialize_response
+    )
 
     sdk._store = store_mock
     sdk._instance = instance_mock
@@ -144,31 +151,37 @@ def _patch_wasm(parse_response: Any, serialize_response: bytes | None = None):
 # HookEvent / convenience constructor tests (no WASM needed)
 # ---------------------------------------------------------------------------
 
+
 class TestConvenienceConstructors:
     def test_approve(self):
         from polyhook import approve
+
         r = approve()
         assert r == {"action": "approve"}
 
     def test_block(self):
         from polyhook import block
+
         r = block("dangerous command")
         assert r == {"action": "block", "message": "dangerous command"}
 
     def test_modify(self):
         from polyhook import modify
+
         new_input = {"command": "ls -la /tmp"}
         r = modify(new_input)
         assert r == {"action": "modify", "input": new_input}
 
     def test_block_empty_message(self):
         from polyhook import block
+
         r = block("")
         assert r["action"] == "block"
         assert r["message"] == ""
 
     def test_modify_nested(self):
         from polyhook import modify
+
         r = modify({"key": {"nested": [1, 2, 3]}})
         assert r["input"]["key"]["nested"] == [1, 2, 3]
 
@@ -177,9 +190,11 @@ class TestConvenienceConstructors:
 # HookEvent dataclass tests
 # ---------------------------------------------------------------------------
 
+
 class TestHookEvent:
     def test_fields_present(self):
         from polyhook.sdk import HookEvent
+
         ev = HookEvent(
             event="tool:before",
             tool="bash",
@@ -199,6 +214,7 @@ class TestHookEvent:
 
     def test_optional_fields_none(self):
         from polyhook.sdk import HookEvent
+
         ev = HookEvent(
             event="session:start",
             tool=None,
@@ -217,6 +233,7 @@ class TestHookEvent:
 # read() tests
 # ---------------------------------------------------------------------------
 
+
 class TestRead:
     def _event_dict(self, **overrides):
         base = {
@@ -233,6 +250,7 @@ class TestRead:
 
     def test_basic_parse(self):
         from polyhook import read
+
         _patch_wasm(self._event_dict())
         fake_stdin = b'{"hook_event_type": "PreToolUse"}'
         with patch("sys.stdin", io.TextIOWrapper(io.BytesIO(fake_stdin))):
@@ -246,6 +264,7 @@ class TestRead:
 
     def test_optional_fields_absent(self):
         from polyhook import read
+
         d = self._event_dict(tool=None, input=None, agentId=None)
         del d["tool"]
         del d["input"]
@@ -259,14 +278,18 @@ class TestRead:
 
     def test_parse_error_raises_value_error(self):
         from polyhook import read
+
         _patch_wasm({"error": "unknown caller", "raw": "{}"})
         with patch("sys.stdin", io.TextIOWrapper(io.BytesIO(b"{}"))):
-            with pytest.raises(ValueError, match="polyhook.wasm parse error: unknown caller"):
+            with pytest.raises(
+                ValueError, match="polyhook.wasm parse error: unknown caller"
+            ):
                 read()
 
     def test_caller_stored(self):
         from polyhook import read
         import polyhook.sdk as sdk
+
         _patch_wasm(self._event_dict(caller="windsurf"))
         with patch("sys.stdin", io.TextIOWrapper(io.BytesIO(b"{}"))):
             read()
@@ -274,6 +297,7 @@ class TestRead:
 
     def test_tool_after_event(self):
         from polyhook import read
+
         d = self._event_dict(
             event="tool:after",
             tool="write_file",
@@ -288,6 +312,7 @@ class TestRead:
 
     def test_session_start_event(self):
         from polyhook import read
+
         d = {
             "event": "session:start",
             "tool": None,
@@ -307,10 +332,14 @@ class TestRead:
 # respond() tests
 # ---------------------------------------------------------------------------
 
+
 class TestRespond:
-    def _run_respond(self, response_obj: Any, wasm_output: bytes = b'{"ok":true}') -> bytes:
+    def _run_respond(
+        self, response_obj: Any, wasm_output: bytes = b'{"ok":true}'
+    ) -> bytes:
         """Run respond() and return what was written to stdout."""
         from polyhook import respond
+
         _patch_wasm(
             parse_response={"event": "tool:before", "sessionId": "s", "caller": "c"},
             serialize_response=wasm_output,
@@ -325,16 +354,21 @@ class TestRespond:
 
     def test_approve_written(self):
         from polyhook import approve
+
         output = self._run_respond(approve(), b'{"action":"approve"}')
         assert output == b'{"action":"approve"}'
 
     def test_block_written(self):
         from polyhook import block
-        output = self._run_respond(block("stop it"), b'{"decision":"block","reason":"stop it"}')
+
+        output = self._run_respond(
+            block("stop it"), b'{"decision":"block","reason":"stop it"}'
+        )
         assert output == b'{"decision":"block","reason":"stop it"}'
 
     def test_modify_written(self):
         from polyhook import modify
+
         output = self._run_respond(
             modify({"command": "ls /tmp"}),
             b'{"decision":"modify","input":{"command":"ls /tmp"}}',
@@ -385,6 +419,7 @@ class TestRespond:
         with patch.object(sdk, "_write_to_wasm", side_effect=spy_write):
             with patch("sys.stdout", mock_stdout):
                 from polyhook import approve, respond
+
                 respond(approve())
 
         # At least one write should be valid JSON
@@ -394,6 +429,7 @@ class TestRespond:
 # ---------------------------------------------------------------------------
 # Missing WASM file test
 # ---------------------------------------------------------------------------
+
 
 class TestMissingWasm:
     def test_missing_wasm_raises_import_error(self):
@@ -428,6 +464,7 @@ class TestMissingWasm:
 # ---------------------------------------------------------------------------
 # _init_wasm() specific path tests
 # ---------------------------------------------------------------------------
+
 
 class TestInitWasm:
     def test_early_return_when_instance_already_set(self):
@@ -554,6 +591,7 @@ class TestInitWasm:
 # Round-trip integration test (parse → respond) with mock WASM
 # ---------------------------------------------------------------------------
 
+
 class TestRoundTrip:
     def test_full_round_trip(self):
         """
@@ -574,7 +612,9 @@ class TestRoundTrip:
         }
         wasm_block_output = b'{"decision":"block","reason":"dangerous command"}'
 
-        store_mock, instance_mock, call_count = _make_wasm_mock(event_dict, wasm_block_output)
+        store_mock, instance_mock, call_count = _make_wasm_mock(
+            event_dict, wasm_block_output
+        )
         sdk._store = store_mock
         sdk._instance = instance_mock
         sdk._memory = instance_mock.exports(store_mock)["memory"]

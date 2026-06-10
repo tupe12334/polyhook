@@ -55,8 +55,8 @@ public static class Polyhook
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
-        PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition      = JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.KebabCaseLower) },
     };
 
@@ -202,15 +202,15 @@ public static class Polyhook
     {
         var (engine, wasmBytes) = s_engineAndBytes.Value;
 
-        using var store  = new Store(engine);
+        using var store = new Store(engine);
         using var module = Wasmtime.Module.FromBytes(engine, "polyhook", wasmBytes);
-        var linker       = new Linker(engine);
-        var instance     = linker.Instantiate(store, module);
+        var linker = new Linker(engine);
+        var instance = linker.Instantiate(store, module);
 
-        var memory  = instance.GetMemory("memory")
+        var memory = instance.GetMemory("memory")
             ?? throw new InvalidOperationException("WASM export 'memory' not found.");
 
-        var alloc   = instance.GetFunction<int, int>("alloc")
+        var alloc = instance.GetFunction<int, int>("alloc")
             ?? throw new InvalidOperationException("WASM export 'alloc' not found.");
         var dealloc = instance.GetAction<int, int>("dealloc")
             ?? throw new InvalidOperationException("WASM export 'dealloc' not found.");
@@ -241,7 +241,7 @@ public static class Polyhook
 
     private static (Engine engine, byte[] wasmBytes) LoadEngine()
     {
-        var assembly  = Assembly.GetExecutingAssembly();
+        var assembly = Assembly.GetExecutingAssembly();
         // Embedded resource name: <AssemblyName>.<filename>
         var resourceName = assembly.GetManifestResourceNames()
             .FirstOrDefault(n => n.EndsWith("polyhook.wasm", StringComparison.OrdinalIgnoreCase))
@@ -251,7 +251,7 @@ public static class Polyhook
                 "in the .csproj and that the build was not performed without it.");
 
         using var stream = assembly.GetManifestResourceStream(resourceName)!;
-        using var ms     = new MemoryStream((int)stream.Length);
+        using var ms = new MemoryStream((int)stream.Length);
         stream.CopyTo(ms);
         var wasmBytes = ms.ToArray();
 

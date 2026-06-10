@@ -2,14 +2,14 @@ pub mod detect;
 pub mod events;
 pub mod parse;
 pub mod response;
-pub mod tools;
-pub mod types;
-mod type_impls;
-pub mod wasm;
 mod stdin_wrappers;
+pub mod tools;
+mod type_impls;
+pub mod types;
+pub mod wasm;
 
-pub use types::*;
 pub use stdin_wrappers::{read, respond};
+pub use types::*;
 
 use std::cell::RefCell;
 use std::io::{Read, Write};

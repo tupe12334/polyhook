@@ -93,12 +93,12 @@ func defaultWASMLoader() ([]byte, error) {
 }
 
 type wasmRuntime struct {
-	ctx    context.Context
-	rt     wazero.Runtime
-	mod    api.Module
-	alloc  api.Function
-	dealloc api.Function
-	parse   api.Function
+	ctx       context.Context
+	rt        wazero.Runtime
+	mod       api.Module
+	alloc     api.Function
+	dealloc   api.Function
+	parse     api.Function
 	serialize api.Function
 }
 

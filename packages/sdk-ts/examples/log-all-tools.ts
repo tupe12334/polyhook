@@ -4,7 +4,7 @@ const event = await read();
 
 if (event.tool) {
   process.stderr.write(
-    `[hook] caller=${event.caller} event=${event.event} tool=${event.tool}\n`
+    `[hook] caller=${event.caller} event=${event.event} tool=${event.tool}\n`,
   );
 }
 

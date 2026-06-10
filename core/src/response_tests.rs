@@ -25,10 +25,22 @@ fn claude_code_pre_tool_use_block_uses_hook_specific_output() {
         &CallerKind::ClaudeCode,
         Some(HookEventEvent::ToolBefore),
     );
-    assert_eq!(val["hookSpecificOutput"]["hookEventName"], json!("PreToolUse"));
-    assert_eq!(val["hookSpecificOutput"]["permissionDecision"], json!("deny"));
-    assert_eq!(val["hookSpecificOutput"]["permissionDecisionReason"], json!("not allowed"));
-    assert_eq!(val["hookSpecificOutput"]["additionalContext"], serde_json::Value::Null);
+    assert_eq!(
+        val["hookSpecificOutput"]["hookEventName"],
+        json!("PreToolUse")
+    );
+    assert_eq!(
+        val["hookSpecificOutput"]["permissionDecision"],
+        json!("deny")
+    );
+    assert_eq!(
+        val["hookSpecificOutput"]["permissionDecisionReason"],
+        json!("not allowed")
+    );
+    assert_eq!(
+        val["hookSpecificOutput"]["additionalContext"],
+        serde_json::Value::Null
+    );
 }
 
 #[test]
@@ -47,7 +59,10 @@ fn claude_code_post_tool_use_block_uses_decision() {
 #[test]
 fn claude_code_modify() {
     let new_input = json!({"command": "echo safe"});
-    let val = serialize_response(&HookResponse::modify(new_input.clone()), &CallerKind::ClaudeCode);
+    let val = serialize_response(
+        &HookResponse::modify(new_input.clone()),
+        &CallerKind::ClaudeCode,
+    );
     assert_eq!(val["decision"], json!("approve"));
     assert_eq!(val["tool_input"], new_input);
 }
@@ -68,7 +83,10 @@ fn unknown_block() {
 #[test]
 fn unknown_modify() {
     let new_input = json!({"x": 1});
-    let val = serialize_response(&HookResponse::modify(new_input.clone()), &CallerKind::Unknown);
+    let val = serialize_response(
+        &HookResponse::modify(new_input.clone()),
+        &CallerKind::Unknown,
+    );
     assert_eq!(val["decision"], json!("approve"));
     assert_eq!(val["tool_input"], new_input);
 }
@@ -89,7 +107,10 @@ fn cursor_block() {
 #[test]
 fn cursor_modify() {
     let new_input = json!({"command": "echo safe"});
-    let val = serialize_response(&HookResponse::modify(new_input.clone()), &CallerKind::Cursor);
+    let val = serialize_response(
+        &HookResponse::modify(new_input.clone()),
+        &CallerKind::Cursor,
+    );
     assert_eq!(val["action"], json!("modify"));
     assert_eq!(val["args"], new_input);
 }
@@ -102,7 +123,10 @@ fn windsurf_approve() {
 
 #[test]
 fn windsurf_block() {
-    let val = serialize_response(&HookResponse::block("blocked by policy"), &CallerKind::Windsurf);
+    let val = serialize_response(
+        &HookResponse::block("blocked by policy"),
+        &CallerKind::Windsurf,
+    );
     assert_eq!(val["allow"], json!(false));
     assert_eq!(val["reason"], json!("blocked by policy"));
 }
@@ -110,7 +134,10 @@ fn windsurf_block() {
 #[test]
 fn windsurf_modify() {
     let new_input = json!({"path": "/safe/dir"});
-    let val = serialize_response(&HookResponse::modify(new_input.clone()), &CallerKind::Windsurf);
+    let val = serialize_response(
+        &HookResponse::modify(new_input.clone()),
+        &CallerKind::Windsurf,
+    );
     assert_eq!(val["allow"], json!(true));
     assert_eq!(val["modified_parameters"], new_input);
 }
@@ -165,7 +192,10 @@ fn gemini_cli_approve() {
 
 #[test]
 fn gemini_cli_block() {
-    let val = serialize_response(&HookResponse::block("secret detected"), &CallerKind::GeminiCli);
+    let val = serialize_response(
+        &HookResponse::block("secret detected"),
+        &CallerKind::GeminiCli,
+    );
     assert_eq!(val["decision"], json!("deny"));
     assert_eq!(val["reason"], json!("secret detected"));
 }
@@ -173,7 +203,10 @@ fn gemini_cli_block() {
 #[test]
 fn gemini_cli_modify() {
     let new_input = json!({"content": "safe content"});
-    let val = serialize_response(&HookResponse::modify(new_input.clone()), &CallerKind::GeminiCli);
+    let val = serialize_response(
+        &HookResponse::modify(new_input.clone()),
+        &CallerKind::GeminiCli,
+    );
     assert_eq!(val["decision"], json!("allow"));
     assert_eq!(val["tool_input"], new_input);
 }

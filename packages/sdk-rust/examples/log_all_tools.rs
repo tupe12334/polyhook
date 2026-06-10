@@ -9,7 +9,9 @@ fn main() {
     if let Some(tool) = &event.tool {
         eprintln!(
             "[hook] caller={} event={} tool={}",
-            serde_json::to_string(&event.caller).unwrap_or_default().trim_matches('"'),
+            serde_json::to_string(&event.caller)
+                .unwrap_or_default()
+                .trim_matches('"'),
             event.event,
             tool
         );

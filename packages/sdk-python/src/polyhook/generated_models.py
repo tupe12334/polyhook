@@ -12,21 +12,21 @@ PolyhookSchema: TypeAlias = Any
 
 
 class CallerKind(Enum):
-    claude_code = 'claude-code'
-    cursor = 'cursor'
-    windsurf = 'windsurf'
-    cline = 'cline'
-    amp = 'amp'
-    unknown = 'unknown'
+    claude_code = "claude-code"
+    cursor = "cursor"
+    windsurf = "windsurf"
+    cline = "cline"
+    amp = "amp"
+    unknown = "unknown"
 
 
 class Event(Enum):
-    tool_before = 'tool:before'
-    tool_after = 'tool:after'
-    session_start = 'session:start'
-    session_stop = 'session:stop'
-    agent_stop = 'agent:stop'
-    notification = 'notification'
+    tool_before = "tool:before"
+    tool_after = "tool:after"
+    session_start = "session:start"
+    session_stop = "session:stop"
+    agent_stop = "agent:stop"
+    notification = "notification"
 
 
 @dataclass
@@ -42,18 +42,18 @@ class HookEvent:
 
 @dataclass
 class ApproveResponse:
-    action: Literal['approve']
+    action: Literal["approve"]
 
 
 @dataclass
 class BlockResponse:
-    action: Literal['block']
+    action: Literal["block"]
     message: str
 
 
 @dataclass
 class ModifyResponse:
-    action: Literal['modify']
+    action: Literal["modify"]
     input: dict[str, Any]
 
 

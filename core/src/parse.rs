@@ -50,7 +50,13 @@ fn str_field<'a>(val: &'a serde_json::Value, key: &str) -> Option<&'a str> {
 
 fn extract_event_field(val: &serde_json::Value, caller: &CallerKind) -> String {
     let candidates: &[&str] = match caller {
-        CallerKind::ClaudeCode => &["hook_event_name", "event", "hookEvent", "hook_event", "type"],
+        CallerKind::ClaudeCode => &[
+            "hook_event_name",
+            "event",
+            "hookEvent",
+            "hook_event",
+            "type",
+        ],
         CallerKind::Cursor => &["type", "event"],
         CallerKind::Windsurf => &["event", "type"],
         CallerKind::Cline => &["type", "event"],
@@ -105,8 +111,14 @@ fn extract_input(
         CallerKind::ClaudeCode => val.get("tool_input").cloned(),
         CallerKind::Cursor => val.get("toolCall").and_then(|tc| tc.get("args")).cloned(),
         CallerKind::Windsurf => val.get("parameters").cloned(),
-        CallerKind::Cline => val.get("args").cloned().or_else(|| val.get("input").cloned()),
-        CallerKind::Amp => val.get("args").cloned().or_else(|| val.get("input").cloned()),
+        CallerKind::Cline => val
+            .get("args")
+            .cloned()
+            .or_else(|| val.get("input").cloned()),
+        CallerKind::Amp => val
+            .get("args")
+            .cloned()
+            .or_else(|| val.get("input").cloned()),
         CallerKind::GeminiCli => val.get("tool_input").cloned(),
         CallerKind::Unknown => {
             for key in &["tool_input", "args", "parameters", "input"] {
@@ -126,13 +138,16 @@ fn extract_output(
 ) -> Option<serde_json::Map<String, serde_json::Value>> {
     let raw = match caller {
         CallerKind::ClaudeCode => val.get("tool_output").cloned(),
-        CallerKind::Cursor => val
-            .get("toolCall")
-            .and_then(|tc| tc.get("result"))
-            .cloned(),
+        CallerKind::Cursor => val.get("toolCall").and_then(|tc| tc.get("result")).cloned(),
         CallerKind::Windsurf => val.get("result").cloned(),
-        CallerKind::Cline => val.get("result").cloned().or_else(|| val.get("output").cloned()),
-        CallerKind::Amp => val.get("result").cloned().or_else(|| val.get("output").cloned()),
+        CallerKind::Cline => val
+            .get("result")
+            .cloned()
+            .or_else(|| val.get("output").cloned()),
+        CallerKind::Amp => val
+            .get("result")
+            .cloned()
+            .or_else(|| val.get("output").cloned()),
         CallerKind::GeminiCli => val.get("tool_response").cloned(),
         CallerKind::Unknown => {
             for key in &["tool_output", "result", "output"] {

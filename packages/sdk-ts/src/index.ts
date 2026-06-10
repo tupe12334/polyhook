@@ -1,36 +1,32 @@
-import * as fs from 'fs'
-import { fileURLToPath } from 'url'
+import * as fs from "fs";
+import { fileURLToPath } from "url";
 
 // Variable ref (not a string literal) so Vite does not inline the .wasm as a data URL.
-const _wasmRel = '../polyhook.wasm'
+const _wasmRel = "../polyhook.wasm";
 
 // ---------------------------------------------------------------------------
 // Types (re-exported from generated/types — source of truth is schema.json)
 // ---------------------------------------------------------------------------
 
-export type {
-  CallerKind,
-  HookEvent,
-  HookResponse,
-} from './generated/types'
+export type { CallerKind, HookEvent, HookResponse } from "./generated/types";
 
-import type { CallerKind, HookEvent, HookResponse } from './generated/types'
+import type { CallerKind, HookEvent, HookResponse } from "./generated/types";
 
 /** Approve the action without modification. */
 export interface ApproveResponse {
-  action: 'approve'
+  action: "approve";
 }
 
 /** Block the action, surfacing a message to the user / agent. */
 export interface BlockResponse {
-  action: 'block'
-  message: string
+  action: "block";
+  message: string;
 }
 
 /** Approve the action but replace the input with modified fields. */
 export interface ModifyResponse {
-  action: 'modify'
-  input: Record<string, unknown>
+  action: "modify";
+  input: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,42 +39,44 @@ export interface ModifyResponse {
  * the same object at runtime but TypeScript only types it in lib.dom.d.ts.
  */
 interface WasmMemory {
-  readonly buffer: ArrayBuffer
+  readonly buffer: ArrayBuffer;
 }
 
 export interface WasmExports {
-  memory: WasmMemory
-  alloc(len: number): number
-  dealloc(ptr: number, len: number): void
-  parse(ptr: number, len: number): number
-  serialize(ptr: number, len: number): number
+  memory: WasmMemory;
+  alloc(len: number): number;
+  dealloc(ptr: number, len: number): void;
+  parse(ptr: number, len: number): number;
+  serialize(ptr: number, len: number): number;
 }
 
-let _wasm: WasmExports | null = null
+let _wasm: WasmExports | null = null;
 
 // Kept across read() → respond() within a single hook invocation so that
 // respond() can serialise the caller information back out.
-let _lastCaller: CallerKind = 'unknown'
+let _lastCaller: CallerKind = "unknown";
 
 // Allow tests to inject a mock instance without touching the filesystem.
 export function _setWasmInstance(instance: WasmExports | null): void {
-  _wasm = instance
+  _wasm = instance;
 }
 
 async function getWasm(): Promise<WasmExports> {
-  if (_wasm !== null) return _wasm
+  if (_wasm !== null) return _wasm;
 
-  const wasmPath = fileURLToPath(new URL(_wasmRel, import.meta.url))
-  const wasmBytes = fs.readFileSync(wasmPath)
+  const wasmPath = fileURLToPath(new URL(_wasmRel, import.meta.url));
+  const wasmBytes = fs.readFileSync(wasmPath);
   // Access the global WebAssembly object via globalThis so TypeScript does not
   // require the DOM lib (where the WebAssembly namespace is declared).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wa = (globalThis as any).WebAssembly as {
-    instantiate(bytes: ArrayBuffer | Uint8Array): Promise<{ instance: { exports: unknown } }>
-  }
-  const { instance } = await wa.instantiate(wasmBytes)
-  _wasm = instance.exports as WasmExports
-  return _wasm
+    instantiate(
+      bytes: ArrayBuffer | Uint8Array,
+    ): Promise<{ instance: { exports: unknown } }>;
+  };
+  const { instance } = await wa.instantiate(wasmBytes);
+  _wasm = instance.exports as WasmExports;
+  return _wasm;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,8 +87,8 @@ async function getWasm(): Promise<WasmExports> {
  * Write `bytes` into WASM memory starting at `ptr`.
  */
 function writeBytes(wasm: WasmExports, ptr: number, bytes: Uint8Array): void {
-  const mem = new Uint8Array(wasm.memory.buffer)
-  mem.set(bytes, ptr)
+  const mem = new Uint8Array(wasm.memory.buffer);
+  mem.set(bytes, ptr);
 }
 
 /**
@@ -99,11 +97,11 @@ function writeBytes(wasm: WasmExports, ptr: number, bytes: Uint8Array): void {
  * Returns the payload as a Uint8Array (a copy, safe after dealloc).
  */
 function readLengthPrefixed(wasm: WasmExports, ptr: number): Uint8Array {
-  const dv = new DataView(wasm.memory.buffer)
-  const len = dv.getInt32(ptr, /* littleEndian */ true)
-  const payload = new Uint8Array(wasm.memory.buffer, ptr + 4, len)
+  const dv = new DataView(wasm.memory.buffer);
+  const len = dv.getInt32(ptr, /* littleEndian */ true);
+  const payload = new Uint8Array(wasm.memory.buffer, ptr + 4, len);
   // Return a copy so the caller can dealloc before using the data.
-  return Uint8Array.from(payload)
+  return Uint8Array.from(payload);
 }
 
 // ---------------------------------------------------------------------------
@@ -112,11 +110,11 @@ function readLengthPrefixed(wasm: WasmExports, ptr: number): Uint8Array {
 
 async function readStdin(): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = []
-    process.stdin.on('data', (c: Buffer) => chunks.push(c))
-    process.stdin.on('end', () => resolve(Buffer.concat(chunks)))
-    process.stdin.on('error', (err: Error) => reject(err))
-  })
+    const chunks: Buffer[] = [];
+    process.stdin.on("data", (c: Buffer) => chunks.push(c));
+    process.stdin.on("end", () => resolve(Buffer.concat(chunks)));
+    process.stdin.on("error", (err: Error) => reject(err));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -132,35 +130,39 @@ async function readStdin(): Promise<Buffer> {
  * Call this **once** at the start of your hook handler.
  */
 export async function read(): Promise<HookEvent> {
-  const wasm = await getWasm()
+  const wasm = await getWasm();
 
-  const inputBuf = await readStdin()
-  const inputBytes = new Uint8Array(inputBuf.buffer, inputBuf.byteOffset, inputBuf.byteLength)
-  const inputLen = inputBytes.length
+  const inputBuf = await readStdin();
+  const inputBytes = new Uint8Array(
+    inputBuf.buffer,
+    inputBuf.byteOffset,
+    inputBuf.byteLength,
+  );
+  const inputLen = inputBytes.length;
 
   // Allocate space in WASM memory and copy the input bytes in.
-  const inputPtr = wasm.alloc(inputLen)
-  writeBytes(wasm, inputPtr, inputBytes)
+  const inputPtr = wasm.alloc(inputLen);
+  writeBytes(wasm, inputPtr, inputBytes);
 
   // Parse — the WASM function returns a pointer to a length-prefixed JSON blob.
-  const resultPtr = wasm.parse(inputPtr, inputLen)
+  const resultPtr = wasm.parse(inputPtr, inputLen);
 
   // Read the result before freeing.
-  const resultBytes = readLengthPrefixed(wasm, resultPtr)
-  const resultLen = new DataView(wasm.memory.buffer).getInt32(resultPtr, true)
+  const resultBytes = readLengthPrefixed(wasm, resultPtr);
+  const resultLen = new DataView(wasm.memory.buffer).getInt32(resultPtr, true);
 
   // Free WASM allocations.
-  wasm.dealloc(resultPtr, 4 + resultLen)
-  wasm.dealloc(inputPtr, inputLen)
+  wasm.dealloc(resultPtr, 4 + resultLen);
+  wasm.dealloc(inputPtr, inputLen);
 
-  const json = new TextDecoder().decode(resultBytes)
-  const event = JSON.parse(json) as HookEvent
+  const json = new TextDecoder().decode(resultBytes);
+  const event = JSON.parse(json) as HookEvent;
 
   // Cache the caller so respond() can include it without the caller having
   // to thread it through.
-  _lastCaller = event.caller ?? 'unknown'
+  _lastCaller = event.caller ?? "unknown";
 
-  return event
+  return event;
 }
 
 /**
@@ -172,33 +174,33 @@ export async function read(): Promise<HookEvent> {
  * Call this **once** after processing the event returned by {@link read}.
  */
 export async function respond(r: HookResponse): Promise<void> {
-  const wasm = await getWasm()
+  const wasm = await getWasm();
 
-  const json = JSON.stringify(r)
-  const inputBytes = new TextEncoder().encode(json)
-  const inputLen = inputBytes.length
+  const json = JSON.stringify(r);
+  const inputBytes = new TextEncoder().encode(json);
+  const inputLen = inputBytes.length;
 
   // Allocate, copy, call serialize.
-  const inputPtr = wasm.alloc(inputLen)
-  writeBytes(wasm, inputPtr, inputBytes)
+  const inputPtr = wasm.alloc(inputLen);
+  writeBytes(wasm, inputPtr, inputBytes);
 
-  const resultPtr = wasm.serialize(inputPtr, inputLen)
+  const resultPtr = wasm.serialize(inputPtr, inputLen);
 
   // Read the result before freeing.
-  const resultBytes = readLengthPrefixed(wasm, resultPtr)
-  const resultLen = new DataView(wasm.memory.buffer).getInt32(resultPtr, true)
+  const resultBytes = readLengthPrefixed(wasm, resultPtr);
+  const resultLen = new DataView(wasm.memory.buffer).getInt32(resultPtr, true);
 
   // Free WASM allocations.
-  wasm.dealloc(resultPtr, 4 + resultLen)
-  wasm.dealloc(inputPtr, inputLen)
+  wasm.dealloc(resultPtr, 4 + resultLen);
+  wasm.dealloc(inputPtr, inputLen);
 
   // Write the serialised response to stdout.
   await new Promise<void>((resolve, reject) => {
     process.stdout.write(resultBytes, (err) => {
-      if (err) reject(err)
-      else resolve()
-    })
-  })
+      if (err) reject(err);
+      else resolve();
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -207,12 +209,12 @@ export async function respond(r: HookResponse): Promise<void> {
 
 /** Return an {@link ApproveResponse} object (does NOT call respond). */
 export function approve(): ApproveResponse {
-  return { action: 'approve' }
+  return { action: "approve" };
 }
 
 /** Return a {@link BlockResponse} object (does NOT call respond). */
 export function block(message: string): BlockResponse {
-  return { action: 'block', message }
+  return { action: "block", message };
 }
 
 /**
@@ -222,5 +224,5 @@ export function block(message: string): BlockResponse {
  *               original input.
  */
 export function modify(input: Record<string, unknown>): ModifyResponse {
-  return { action: 'modify', input }
+  return { action: "modify", input };
 }

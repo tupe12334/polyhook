@@ -62,8 +62,14 @@ fn respond_to_claude_pre_tool_use_block_uses_hook_specific_output() {
         serde_json::from_slice(&output).expect("output should be valid JSON");
     assert_eq!(json["hookSpecificOutput"]["hookEventName"], "PreToolUse");
     assert_eq!(json["hookSpecificOutput"]["permissionDecision"], "deny");
-    assert_eq!(json["hookSpecificOutput"]["permissionDecisionReason"], "blocked");
-    assert_eq!(json["hookSpecificOutput"]["additionalContext"], serde_json::Value::Null);
+    assert_eq!(
+        json["hookSpecificOutput"]["permissionDecisionReason"],
+        "blocked"
+    );
+    assert_eq!(
+        json["hookSpecificOutput"]["additionalContext"],
+        serde_json::Value::Null
+    );
 }
 
 #[test]
@@ -150,7 +156,10 @@ fn read_from_io_error_returns_err() {
     struct FailReader;
     impl std::io::Read for FailReader {
         fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe broken"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "pipe broken",
+            ))
         }
     }
     let result = read_from(&mut FailReader);
@@ -163,9 +172,14 @@ fn respond_to_write_error_returns_err() {
     struct FailWriter;
     impl std::io::Write for FailWriter {
         fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe broken"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "pipe broken",
+            ))
         }
-        fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
     }
     assert!(FailWriter.flush().is_ok());
     let mut cursor = Cursor::new(CLAUDE_PRE_TOOL.as_bytes());

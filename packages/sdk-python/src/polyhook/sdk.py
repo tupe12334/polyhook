@@ -26,6 +26,7 @@ from .generated_models import HookResponse, CallerKind
 @dataclass
 class HookEvent:
     """Normalised hook event with Python-conventional snake_case field names."""
+
     event: str
     tool: Optional[str]
     input: Optional[dict[str, Any]]
@@ -41,6 +42,7 @@ __all__ = ["HookEvent", "HookResponse", "CallerKind"]
 # ---------------------------------------------------------------------------
 # Convenience constructors
 # ---------------------------------------------------------------------------
+
 
 def approve() -> HookResponse:
     """Return an *approve* response (allow the action unchanged)."""
@@ -100,6 +102,7 @@ def _init_wasm() -> None:
 # Low-level WASM helpers
 # ---------------------------------------------------------------------------
 
+
 def _alloc(n: int) -> int:
     return _instance.exports(_store)["alloc"](_store, n)
 
@@ -143,6 +146,7 @@ def _read_from_wasm(ptr: int) -> bytes:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def read() -> HookEvent:
     """Read the hook event from *stdin* and return a :class:`HookEvent`.
 
@@ -162,7 +166,9 @@ def read() -> HookEvent:
 
     # Read the length-prefixed result, then free the result buffer.
     payload = _read_from_wasm(result_ptr)
-    payload_len = int.from_bytes(bytes(_memory.read(_store, result_ptr, result_ptr + 4)), "little")
+    payload_len = int.from_bytes(
+        bytes(_memory.read(_store, result_ptr, result_ptr + 4)), "little"
+    )
     _dealloc(result_ptr, 4 + payload_len)
 
     data: dict[str, Any] = json.loads(payload)
@@ -207,7 +213,9 @@ def respond(r: HookResponse) -> None:
 
     # Read the length-prefixed output, then free the result buffer.
     out_bytes = _read_from_wasm(out_ptr)
-    out_len = int.from_bytes(bytes(_memory.read(_store, out_ptr, out_ptr + 4)), "little")
+    out_len = int.from_bytes(
+        bytes(_memory.read(_store, out_ptr, out_ptr + 4)), "little"
+    )
     _dealloc(out_ptr, 4 + out_len)
 
     sys.stdout.buffer.write(out_bytes)

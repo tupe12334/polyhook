@@ -128,10 +128,7 @@ pub unsafe extern "C" fn serialize(ptr: *const u8, len: usize) -> *mut u8 {
         Ok(val) => {
             let resp = match val.get("action").and_then(|a| a.as_str()) {
                 Some("block") => {
-                    let msg = val
-                        .get("message")
-                        .and_then(|m| m.as_str())
-                        .unwrap_or("");
+                    let msg = val.get("message").and_then(|m| m.as_str()).unwrap_or("");
                     crate::types::HookResponse::block(msg)
                 }
                 Some("modify") => {
@@ -296,8 +293,7 @@ mod tests {
             let (payload, total) = read_length_prefixed(out_ptr);
             let s = String::from_utf8(payload).expect("valid utf8");
             // Should be valid JSON and not contain "error".
-            let parsed: serde_json::Value =
-                serde_json::from_str(&s).expect("should be valid JSON");
+            let parsed: serde_json::Value = serde_json::from_str(&s).expect("should be valid JSON");
             assert!(!s.contains("error"), "unexpected error in: {s}");
             // Result is a JSON object.
             assert!(parsed.is_object());
@@ -363,8 +359,7 @@ mod tests {
 
             let (payload, total) = read_length_prefixed(out_ptr);
             let s = String::from_utf8(payload).expect("valid utf8");
-            let parsed: serde_json::Value =
-                serde_json::from_str(&s).expect("should be valid JSON");
+            let parsed: serde_json::Value = serde_json::from_str(&s).expect("should be valid JSON");
             assert!(parsed.is_object());
             assert!(!s.contains("error"), "unexpected error in: {s}");
 
@@ -408,8 +403,7 @@ mod tests {
             assert!(!ptr.is_null());
 
             // Read back the 4-byte LE header.
-            let len_bytes: [u8; 4] =
-                std::slice::from_raw_parts(ptr, 4).try_into().unwrap();
+            let len_bytes: [u8; 4] = std::slice::from_raw_parts(ptr, 4).try_into().unwrap();
             let decoded_len = i32::from_le_bytes(len_bytes) as usize;
             assert_eq!(decoded_len, payload_len);
 
