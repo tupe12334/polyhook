@@ -37,6 +37,7 @@ impl HookResponse {
 #[cfg(test)]
 mod tests {
     use crate::{CallerKind, HookResponse};
+    use serde_json::json;
 
     #[test]
     fn default_caller_kind_is_unknown() {
@@ -45,39 +46,38 @@ mod tests {
 
     #[test]
     fn modify_with_object_preserves_fields() {
-        let obj = serde_json::json!({"key": "value", "num": 42});
-        let HookResponse::ModifyResponse(m) = HookResponse::modify(obj) else {
-            unreachable!()
-        };
-        assert_eq!(m.input.len(), 2);
-        assert_eq!(m.input["key"], "value");
-        assert_eq!(m.input["num"], 42);
+        let value = serde_json::to_value(HookResponse::modify(json!({"key": "value", "num": 42})))
+            .expect("modify response should serialize");
+
+        assert_eq!(
+            value,
+            json!({"action": "modify", "input": {"key": "value", "num": 42}})
+        );
     }
 
     #[test]
     fn modify_with_string_produces_empty_input() {
-        let HookResponse::ModifyResponse(m) =
-            HookResponse::modify(serde_json::Value::String("not an object".into()))
-        else {
-            unreachable!()
-        };
-        assert!(m.input.is_empty());
+        let value = serde_json::to_value(HookResponse::modify(serde_json::Value::String(
+            "not an object".into(),
+        )))
+        .expect("modify response should serialize");
+
+        assert_eq!(value, json!({"action": "modify", "input": {}}));
     }
 
     #[test]
     fn modify_with_array_produces_empty_input() {
-        let HookResponse::ModifyResponse(m) = HookResponse::modify(serde_json::json!([1, 2, 3]))
-        else {
-            unreachable!()
-        };
-        assert!(m.input.is_empty());
+        let value = serde_json::to_value(HookResponse::modify(json!([1, 2, 3])))
+            .expect("modify response should serialize");
+
+        assert_eq!(value, json!({"action": "modify", "input": {}}));
     }
 
     #[test]
     fn modify_with_null_produces_empty_input() {
-        let HookResponse::ModifyResponse(m) = HookResponse::modify(serde_json::Value::Null) else {
-            unreachable!()
-        };
-        assert!(m.input.is_empty());
+        let value = serde_json::to_value(HookResponse::modify(serde_json::Value::Null))
+            .expect("modify response should serialize");
+
+        assert_eq!(value, json!({"action": "modify", "input": {}}));
     }
 }
