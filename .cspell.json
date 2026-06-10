@@ -133,7 +133,8 @@
     "behaviour",
     "testpaths",
     "toolu",
-    "clippy"
+    "clippy",
+    "cpanel"
   ],
   "overrides": [
     {
