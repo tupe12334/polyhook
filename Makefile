@@ -60,7 +60,7 @@ schema/ts: $(SCHEMA)
 	    --no-additionalProperties \
 	    > $(TS_OUT)
 	@# Fix dedup artifact: tool emits CallerKind1 for the $ref inline use; collapse to CallerKind.
-	sed -i.bak '/^export type CallerKind1 =/,/^$$/d' $(TS_OUT) && rm -f $(TS_OUT).bak
+	perl -0pi.bak -e 's{/\*\*\n(?: \*.*\n)* \*/\nexport type CallerKind1 = [^\n]+;\n}{}' $(TS_OUT) && rm -f $(TS_OUT).bak
 	sed -i.bak 's/CallerKind1/CallerKind/g' $(TS_OUT) && rm -f $(TS_OUT).bak
 	@echo "Done: $(TS_OUT)"
 
